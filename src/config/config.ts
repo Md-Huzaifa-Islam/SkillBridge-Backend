@@ -1,7 +1,8 @@
 import "dotenv/config";
 
 export const config = {
-  port: process.env.PORT,
+  port: process.env.PORT || 3000,
+  node_env: process.env.NODE_ENV || "development",
   app_url: process.env.BETTER_AUTH_URL,
   smtp_host: process.env.SMTP_HOST,
   smtp_port: Number(process.env.SMTP_PORT),
