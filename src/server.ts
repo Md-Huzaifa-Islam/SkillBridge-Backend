@@ -9,7 +9,7 @@ app.listen(port, () => {
 ║   🎓 SkillBridge Backend Server 🎓    ║
 ╠════════════════════════════════════════╣
 ║  Server running on port: ${port}        ║
-║  Environment: ${config.node_env || 'development'}               ║
+║  Environment: ${config.node_env || "development"}               ║
 ║  Ready to connect tutors & students!  ║
 ╚════════════════════════════════════════╝
   `);

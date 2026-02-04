@@ -12,10 +12,10 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed": "tsx src/prisma/seed.ts"
+    "seed": "tsx src/prisma/AdminSeed.ts"
   },
   "prisma": {
-    "seed": "tsx src/prisma/seed.ts"
+    "seed": "tsx src/prisma/AdminSeed.ts"
   },
   "keywords": [],
   "author": "",

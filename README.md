@@ -28,12 +28,14 @@ A robust Node.js backend API for the SkillBridge platform that connects learners
 ## ✨ Features
 
 ### Authentication & Authorization
+
 - User registration with role selection (Student/Tutor/Admin)
 - JWT-based authentication
 - Email verification
 - Role-based access control
 
 ### Student Features
+
 - Browse and search tutors
 - Filter by category, rating, and price
 - Book tutoring sessions
@@ -41,12 +43,14 @@ A robust Node.js backend API for the SkillBridge platform that connects learners
 - Leave reviews after sessions
 
 ### Tutor Features
+
 - Create and manage tutor profile
 - Set availability slots
 - View teaching sessions
 - Track ratings and reviews
 
 ### Admin Features
+
 - User management (ban/unban)
 - View all bookings
 - Manage categories
@@ -55,6 +59,7 @@ A robust Node.js backend API for the SkillBridge platform that connects learners
 ## 📦 Installation
 
 ### Prerequisites
+
 - Node.js (v18 or higher)
 - PostgreSQL
 - pnpm
@@ -62,33 +67,39 @@ A robust Node.js backend API for the SkillBridge platform that connects learners
 ### Setup Steps
 
 1. **Clone the repository**
+
 ```bash
 git clone <repository-url>
 cd backend
 ```
 
 2. **Install dependencies**
+
 ```bash
 pnpm install
 ```
 
 3. **Set up environment variables**
+
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
 4. **Run database migrations**
+
 ```bash
 pnpm prisma migrate dev
 ```
 
 5. **Seed the database (optional)**
+
 ```bash
 pnpm prisma db seed
 ```
 
 6. **Start development server**
+
 ```bash
 pnpm dev
 ```
@@ -117,11 +128,13 @@ See `.env.example` for required environment variables:
 - **Available** - Tutor availability slots
 
 ### User Roles
+
 - `STUDENT` - Learners who book sessions
 - `TUTOR` - Experts who offer tutoring
 - `ADMIN` - Platform moderators
 
 ### Booking Status Flow
+
 ```
 CONFIRM → COMPLETED
         → CANCELLED
@@ -130,6 +143,7 @@ CONFIRM → COMPLETED
 ## 🔌 API Endpoints
 
 ### Authentication
+
 ```
 POST   /api/auth/register    - Register new user
 POST   /api/auth/login       - Login user
@@ -137,17 +151,20 @@ GET    /api/auth/me          - Get current user
 ```
 
 ### Tutors (Public)
+
 ```
 GET    /api/tutors           - Get all tutors (with filters)
 GET    /api/tutors/:id       - Get tutor details
 ```
 
 ### Categories
+
 ```
 GET    /api/categories       - Get all categories
 ```
 
 ### Bookings
+
 ```
 POST   /api/bookings         - Create new booking
 GET    /api/bookings         - Get user's bookings
@@ -155,6 +172,7 @@ GET    /api/bookings/:id     - Get booking details
 ```
 
 ### Tutor Management (Protected)
+
 ```
 PUT    /api/tutor/profile    - Update tutor profile
 PUT    /api/tutor/availability - Update availability
@@ -162,12 +180,14 @@ GET    /api/tutor/sessions   - View teaching sessions
 ```
 
 ### Reviews
+
 ```
 POST   /api/reviews          - Create review
 GET    /api/reviews          - Get reviews
 ```
 
 ### Admin (Protected)
+
 ```
 GET    /api/admin/users      - Get all users
 PATCH  /api/admin/users/:id  - Update user status
