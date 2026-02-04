@@ -16,7 +16,6 @@ pnpm-debug.log*
 .cache
 coverage
 .nyc_output
-src
 README.md
 .git
 .gitignore
