@@ -1,19 +1,33 @@
 import { Router } from "express";
-import { toNodeHandler } from "better-auth/node";
-import { auth } from "../lib/auth";
 import { AuthRoutes } from "./auth/auth.routes";
+import { TutorsRoutes } from "./tutors/tutors.route";
+import { CategoriesRoutes } from "./categories/categories.routes";
+import { BookingRoutes } from "./bookings/bookings.route";
+import { TutorRoutes } from "./tutor/tutor.route";
+import { ReviewsRoutes } from "./reviews/reviews.routes";
+import { AdminRoutes } from "./admin/admin.routes";
 
 const router = Router();
 
 // this is for authentication
 router.use("/auth", AuthRoutes);
 
-// tutor routes
-// router.use("/tutors",)
+// tutors routes
+router.use("/tutors", TutorsRoutes);
+
+// tutor routes (authenticated teacher only)
+router.use("/tutor", TutorRoutes);
+
+// category routes
+router.use("/categories", CategoriesRoutes);
 
 // bookings routes
-// router.use('/bookings',)
+router.use("/bookings", BookingRoutes);
 
 // reviews routes
+router.use("/reviews", ReviewsRoutes);
+
+// admin routes (authenticated admin only)
+router.use("/admin", AdminRoutes);
 
 export { router as ApiRoutes };
