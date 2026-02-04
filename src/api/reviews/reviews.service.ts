@@ -49,7 +49,6 @@ export class ReviewsService {
       // Create the review
       const createdReview = await prisma.rating.create({
         data: {
-          id: crypto.randomUUID(),
           booking_id: data.booking_id,
           rating: data.rating,
           review: data.review,

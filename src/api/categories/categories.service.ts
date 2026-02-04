@@ -13,7 +13,6 @@ const getAllCategories = async (): Promise<Category[]> => {
 const createCategory = async (name: string): Promise<Category> => {
   const category = await prisma.category.create({
     data: {
-      id: crypto.randomUUID(),
       name,
     },
   });

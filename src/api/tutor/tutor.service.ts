@@ -95,7 +95,6 @@ export class TutorService {
 
       // Create new availability entries
       const availabilityData = availability.map((avail) => ({
-        id: crypto.randomUUID(),
         tutor_id: tutorProfile.id,
         day: avail.day,
         start_time: new Date(`1970-01-01T${avail.start_time}`),

@@ -90,14 +90,14 @@ model Verification {
 // extra tables added by me
 
 model Category {
-  id   String @id @unique
+  id   String @id @unique @default(uuid())
   name String
 
   tutors TutorProfile[]
 }
 
 model TutorProfile {
-  id             String      @id @unique
+  id             String      @id @unique @default(uuid())
   user_id        String
   category_id    String
   description    String?
@@ -122,7 +122,7 @@ enum WeekDay {
 }
 
 model Available {
-  id             String       @id @unique
+  id             String       @id @unique @default(uuid())
   start_time     DateTime     @db.Time()
   end_time       DateTime     @db.Time()
   tutor_id       String
@@ -139,7 +139,7 @@ enum BookingStatus {
 }
 
 model Booking {
-  id             String        @id @unique
+  id             String        @id @unique @default(uuid())
   tutor_id       String
   student_id     String
   start_time     DateTime      @db.Time()
@@ -155,7 +155,7 @@ model Booking {
 }
 
 model Rating {
-  id            String   @id @unique
+  id            String   @id @unique @default(uuid())
   booking_id    String   @unique
   rating        Int      @db.SmallInt
   review        String?
