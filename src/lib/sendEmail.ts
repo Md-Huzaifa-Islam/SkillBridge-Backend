@@ -1,4 +1,3 @@
-// lib/email.ts
 import nodemailer from "nodemailer";
 import { config } from "../config/config";
 
@@ -10,7 +9,6 @@ interface EmailOptions {
 }
 
 export async function sendEmail({ to, subject, text, html }: EmailOptions) {
-  // Create transporter (use environment variables for real credentials)
   const transporter = nodemailer.createTransport({
     host: config.smtp_host,
     port: Number(config.smtp_port) || 587,
@@ -21,7 +19,6 @@ export async function sendEmail({ to, subject, text, html }: EmailOptions) {
     },
   });
 
-  // Send mail
   const info = await transporter.sendMail({
     from: `"Skill Bridge" <${config.smtp_from}>`,
     to,

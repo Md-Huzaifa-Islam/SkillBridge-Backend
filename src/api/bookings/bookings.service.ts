@@ -32,8 +32,6 @@ const createBooking = async (data: CreateBookingInput) => {
     throw new Error("Tutor not found");
   }
 
-  // Calculate total price based on hours
-  // This is a simple calculation - you might want to improve this
   const startHour = new Date(`1970-01-01T${start_time}`).getHours();
   const endHour = new Date(`1970-01-01T${end_time}`).getHours();
   const hours = endHour - startHour;

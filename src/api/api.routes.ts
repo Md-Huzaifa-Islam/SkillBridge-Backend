@@ -9,13 +9,10 @@ import { AdminRoutes } from "./admin/admin.routes";
 
 const router = Router();
 
-// this is for authentication
 router.use("/auth", AuthRoutes);
 
-// tutors routes
 router.use("/tutors", TutorsRoutes);
 
-// tutor routes (authenticated teacher only)
 router.use("/tutor", TutorRoutes);
 
 // category routes

@@ -69,11 +69,10 @@ const getTutors = async (query: GetTutorsQuery) => {
   // Build orderBy with featured priority if not explicitly filtered
   let orderBy: any[] = [];
 
-  // If featured is not specified, prioritize featured tutors
   if (featured === undefined) {
     orderBy.push({
       tutorProfiles: {
-        _count: "desc", // This ensures users with profiles come first
+        _count: "desc",
       },
     });
   }

@@ -9,7 +9,6 @@ interface CreateReviewData {
 export class ReviewsService {
   static async createReview(studentId: string, data: CreateReviewData) {
     try {
-      // First, verify the booking exists and belongs to this student
       const booking = await prisma.booking.findUnique({
         where: { id: data.booking_id },
         include: {
@@ -23,21 +22,18 @@ export class ReviewsService {
         throw error;
       }
 
-      // Verify the booking belongs to this student
       if (booking.student_id !== studentId) {
         const error: any = new Error("You can only review your own bookings");
         error.statusCode = 403;
         throw error;
       }
 
-      // Check if the booking is completed
       if (booking.status !== "completed") {
         const error: any = new Error("You can only review completed bookings");
         error.statusCode = 400;
         throw error;
       }
 
-      // Check if a review already exists for this booking
       if (booking.ratings) {
         const error: any = new Error(
           "A review already exists for this booking",
@@ -46,7 +42,6 @@ export class ReviewsService {
         throw error;
       }
 
-      // Create the review
       const createdReview = await prisma.rating.create({
         data: {
           booking_id: data.booking_id,

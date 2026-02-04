@@ -88,12 +88,10 @@ export class TutorService {
         throw error;
       }
 
-      // Delete existing availability for this tutor
       await prisma.available.deleteMany({
         where: { tutor_id: tutorProfile.id },
       });
 
-      // Create new availability entries
       const availabilityData = availability.map((avail) => ({
         tutor_id: tutorProfile.id,
         day: avail.day,

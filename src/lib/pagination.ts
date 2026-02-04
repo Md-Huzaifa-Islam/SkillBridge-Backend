@@ -71,11 +71,9 @@ export const parseSortOptions = (
   defaultSortBy: string = "createdAt",
   defaultSortOrder: "asc" | "desc" = "desc",
 ): { sortBy: string; sortOrder: "asc" | "desc" } => {
-  // Validate sort field
   const validatedSortBy =
     sortBy && allowedFields.includes(sortBy) ? sortBy : defaultSortBy;
 
-  // Validate sort order
   const validatedSortOrder =
     sortOrder === "asc" || sortOrder === "desc" ? sortOrder : defaultSortOrder;
 
