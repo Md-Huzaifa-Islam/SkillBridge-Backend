@@ -21,7 +21,9 @@ export interface PaginationResult<T> {
 }
 
 /**
- * Calculate pagination parameters
+ * Calculate pagination parameters for database queries
+ * @param options - Pagination options with page and limit
+ * @returns Object with page, limit, and skip values
  */
 export const calculatePagination = (options: PaginationOptions) => {
   const page = Number(options.page) || 1;
