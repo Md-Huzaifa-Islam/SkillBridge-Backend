@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import { UsersRole } from "../../generated/prisma/enums";
 import { AuthServices } from "./app.service";
 
+/**
+ * Register a new user (student or tutor)
+ * @route POST /api/auth/register
+ * @access Public
+ */
 const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role = UsersRole.student } = req.body;
@@ -47,6 +52,11 @@ const registerUser = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Login user and return session
+ * @route POST /api/auth/login
+ * @access Public
+ */
 const loginUser = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;

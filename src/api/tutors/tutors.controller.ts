@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import { TutorsServices } from "./tutors.service";
 import { GetTutorsQuery } from "../../types/tutors";
 
+/**
+ * Get all tutors with filtering and pagination
+ * @route GET /api/tutors
+ * @access Public
+ */
 const getTutors = async (req: Request, res: Response) => {
   try {
     const query: GetTutorsQuery = {

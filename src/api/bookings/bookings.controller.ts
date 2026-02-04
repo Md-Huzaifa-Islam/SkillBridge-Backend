@@ -1,6 +1,11 @@
 import { Request, Response } from "express";
 import { BookingsService } from "./bookings.service";
 
+/**
+ * Create a new booking for a tutoring session
+ * @route POST /api/bookings
+ * @access Private (Student)
+ */
 const createBooking = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
