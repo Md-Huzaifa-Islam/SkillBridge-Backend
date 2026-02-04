@@ -5,7 +5,7 @@ import { auth } from "../lib/auth";
 const router = Router();
 
 // betterauth management system
-router.all("/auth/{*any}", toNodeHandler(auth));
+router.all("/auth/*splat", toNodeHandler(auth));
 
 // tutor routes
 // router.use("/tutors",)
