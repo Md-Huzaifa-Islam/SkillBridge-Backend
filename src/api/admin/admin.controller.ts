@@ -2,7 +2,15 @@ import { Request, Response } from "express";
 import { AdminService } from "./admin.service";
 import { UsersRole } from "../../generated/prisma/enums";
 
+/**
+ * Admin controller for managing users and platform operations
+ */
 export class AdminController {
+  /**
+   * Get all users in the system
+   * @route GET /api/admin/users
+   * @access Private (Admin only)
+   */
   static async getAllUsers(req: Request, res: Response) {
     try {
       const users = await AdminService.getAllUsers();
@@ -21,6 +29,11 @@ export class AdminController {
     }
   }
 
+  /**
+   * Update user status (ban/unban) or role
+   * @route PATCH /api/admin/users/:id
+   * @access Private (Admin only)
+   */
   static async updateUserStatus(req: Request, res: Response) {
     try {
       const id = req.params.id as string;
