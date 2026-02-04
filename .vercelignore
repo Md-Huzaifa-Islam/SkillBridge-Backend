@@ -16,10 +16,7 @@ pnpm-debug.log*
 .cache
 coverage
 .nyc_output
-dist
 src
-tsconfig.json
 README.md
 .git
 .gitignore
-pnpm-lock.yaml
