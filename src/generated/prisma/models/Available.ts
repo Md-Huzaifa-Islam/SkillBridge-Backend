@@ -229,7 +229,7 @@ export type AvailableScalarWhereWithAggregatesInput = {
 }
 
 export type AvailableCreateInput = {
-  id: string
+  id?: string
   start_time: Date | string
   end_time: Date | string
   day: $Enums.WeekDay
@@ -237,7 +237,7 @@ export type AvailableCreateInput = {
 }
 
 export type AvailableUncheckedCreateInput = {
-  id: string
+  id?: string
   start_time: Date | string
   end_time: Date | string
   tutor_id: string
@@ -261,7 +261,7 @@ export type AvailableUncheckedUpdateInput = {
 }
 
 export type AvailableCreateManyInput = {
-  id: string
+  id?: string
   start_time: Date | string
   end_time: Date | string
   tutor_id: string
@@ -364,14 +364,14 @@ export type EnumWeekDayFieldUpdateOperationsInput = {
 }
 
 export type AvailableCreateWithoutAvailableTutorInput = {
-  id: string
+  id?: string
   start_time: Date | string
   end_time: Date | string
   day: $Enums.WeekDay
 }
 
 export type AvailableUncheckedCreateWithoutAvailableTutorInput = {
-  id: string
+  id?: string
   start_time: Date | string
   end_time: Date | string
   day: $Enums.WeekDay
@@ -415,7 +415,7 @@ export type AvailableScalarWhereInput = {
 }
 
 export type AvailableCreateManyAvailableTutorInput = {
-  id: string
+  id?: string
   start_time: Date | string
   end_time: Date | string
   day: $Enums.WeekDay

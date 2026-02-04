@@ -286,7 +286,7 @@ export type TutorProfileScalarWhereWithAggregatesInput = {
 }
 
 export type TutorProfileCreateInput = {
-  id: string
+  id?: string
   description?: string | null
   price_per_hour: number
   featured?: boolean
@@ -297,7 +297,7 @@ export type TutorProfileCreateInput = {
 }
 
 export type TutorProfileUncheckedCreateInput = {
-  id: string
+  id?: string
   user_id: string
   category_id: string
   description?: string | null
@@ -330,7 +330,7 @@ export type TutorProfileUncheckedUpdateInput = {
 }
 
 export type TutorProfileCreateManyInput = {
-  id: string
+  id?: string
   user_id: string
   category_id: string
   description?: string | null
@@ -525,7 +525,7 @@ export type TutorProfileUpdateOneRequiredWithoutBookingsNestedInput = {
 }
 
 export type TutorProfileCreateWithoutUserToTutorInput = {
-  id: string
+  id?: string
   description?: string | null
   price_per_hour: number
   featured?: boolean
@@ -535,7 +535,7 @@ export type TutorProfileCreateWithoutUserToTutorInput = {
 }
 
 export type TutorProfileUncheckedCreateWithoutUserToTutorInput = {
-  id: string
+  id?: string
   category_id: string
   description?: string | null
   price_per_hour: number
@@ -583,7 +583,7 @@ export type TutorProfileScalarWhereInput = {
 }
 
 export type TutorProfileCreateWithoutCategoryInput = {
-  id: string
+  id?: string
   description?: string | null
   price_per_hour: number
   featured?: boolean
@@ -593,7 +593,7 @@ export type TutorProfileCreateWithoutCategoryInput = {
 }
 
 export type TutorProfileUncheckedCreateWithoutCategoryInput = {
-  id: string
+  id?: string
   user_id: string
   description?: string | null
   price_per_hour: number
@@ -629,7 +629,7 @@ export type TutorProfileUpdateManyWithWhereWithoutCategoryInput = {
 }
 
 export type TutorProfileCreateWithoutAvailablesInput = {
-  id: string
+  id?: string
   description?: string | null
   price_per_hour: number
   featured?: boolean
@@ -639,7 +639,7 @@ export type TutorProfileCreateWithoutAvailablesInput = {
 }
 
 export type TutorProfileUncheckedCreateWithoutAvailablesInput = {
-  id: string
+  id?: string
   user_id: string
   category_id: string
   description?: string | null
@@ -685,7 +685,7 @@ export type TutorProfileUncheckedUpdateWithoutAvailablesInput = {
 }
 
 export type TutorProfileCreateWithoutBookingsInput = {
-  id: string
+  id?: string
   description?: string | null
   price_per_hour: number
   featured?: boolean
@@ -695,7 +695,7 @@ export type TutorProfileCreateWithoutBookingsInput = {
 }
 
 export type TutorProfileUncheckedCreateWithoutBookingsInput = {
-  id: string
+  id?: string
   user_id: string
   category_id: string
   description?: string | null
@@ -741,7 +741,7 @@ export type TutorProfileUncheckedUpdateWithoutBookingsInput = {
 }
 
 export type TutorProfileCreateManyUserToTutorInput = {
-  id: string
+  id?: string
   category_id: string
   description?: string | null
   price_per_hour: number
@@ -777,7 +777,7 @@ export type TutorProfileUncheckedUpdateManyWithoutUserToTutorInput = {
 }
 
 export type TutorProfileCreateManyCategoryInput = {
-  id: string
+  id?: string
   user_id: string
   description?: string | null
   price_per_hour: number

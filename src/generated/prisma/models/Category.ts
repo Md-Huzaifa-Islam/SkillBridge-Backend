@@ -193,13 +193,13 @@ export type CategoryScalarWhereWithAggregatesInput = {
 }
 
 export type CategoryCreateInput = {
-  id: string
+  id?: string
   name: string
   tutors?: Prisma.TutorProfileCreateNestedManyWithoutCategoryInput
 }
 
 export type CategoryUncheckedCreateInput = {
-  id: string
+  id?: string
   name: string
   tutors?: Prisma.TutorProfileUncheckedCreateNestedManyWithoutCategoryInput
 }
@@ -217,7 +217,7 @@ export type CategoryUncheckedUpdateInput = {
 }
 
 export type CategoryCreateManyInput = {
-  id: string
+  id?: string
   name: string
 }
 
@@ -266,12 +266,12 @@ export type CategoryUpdateOneRequiredWithoutTutorsNestedInput = {
 }
 
 export type CategoryCreateWithoutTutorsInput = {
-  id: string
+  id?: string
   name: string
 }
 
 export type CategoryUncheckedCreateWithoutTutorsInput = {
-  id: string
+  id?: string
   name: string
 }
 

@@ -39,6 +39,8 @@ export type RatingMinAggregateOutputType = {
   booking_id: string | null
   rating: number | null
   review: string | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type RatingMaxAggregateOutputType = {
@@ -46,6 +48,8 @@ export type RatingMaxAggregateOutputType = {
   booking_id: string | null
   rating: number | null
   review: string | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type RatingCountAggregateOutputType = {
@@ -53,6 +57,8 @@ export type RatingCountAggregateOutputType = {
   booking_id: number
   rating: number
   review: number
+  createdAt: number
+  updatedAt: number
   _all: number
 }
 
@@ -70,6 +76,8 @@ export type RatingMinAggregateInputType = {
   booking_id?: true
   rating?: true
   review?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type RatingMaxAggregateInputType = {
@@ -77,6 +85,8 @@ export type RatingMaxAggregateInputType = {
   booking_id?: true
   rating?: true
   review?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type RatingCountAggregateInputType = {
@@ -84,6 +94,8 @@ export type RatingCountAggregateInputType = {
   booking_id?: true
   rating?: true
   review?: true
+  createdAt?: true
+  updatedAt?: true
   _all?: true
 }
 
@@ -178,6 +190,8 @@ export type RatingGroupByOutputType = {
   booking_id: string
   rating: number
   review: string | null
+  createdAt: Date
+  updatedAt: Date
   _count: RatingCountAggregateOutputType | null
   _avg: RatingAvgAggregateOutputType | null
   _sum: RatingSumAggregateOutputType | null
@@ -208,6 +222,8 @@ export type RatingWhereInput = {
   booking_id?: Prisma.StringFilter<"Rating"> | string
   rating?: Prisma.IntFilter<"Rating"> | number
   review?: Prisma.StringNullableFilter<"Rating"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
   bookingRating?: Prisma.XOR<Prisma.BookingScalarRelationFilter, Prisma.BookingWhereInput>
 }
 
@@ -216,6 +232,8 @@ export type RatingOrderByWithRelationInput = {
   booking_id?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrderInput | Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   bookingRating?: Prisma.BookingOrderByWithRelationInput
 }
 
@@ -227,6 +245,8 @@ export type RatingWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.RatingWhereInput | Prisma.RatingWhereInput[]
   rating?: Prisma.IntFilter<"Rating"> | number
   review?: Prisma.StringNullableFilter<"Rating"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Rating"> | Date | string
   bookingRating?: Prisma.XOR<Prisma.BookingScalarRelationFilter, Prisma.BookingWhereInput>
 }, "id" | "id" | "booking_id">
 
@@ -235,6 +255,8 @@ export type RatingOrderByWithAggregationInput = {
   booking_id?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrderInput | Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   _count?: Prisma.RatingCountOrderByAggregateInput
   _avg?: Prisma.RatingAvgOrderByAggregateInput
   _max?: Prisma.RatingMaxOrderByAggregateInput
@@ -250,26 +272,34 @@ export type RatingScalarWhereWithAggregatesInput = {
   booking_id?: Prisma.StringWithAggregatesFilter<"Rating"> | string
   rating?: Prisma.IntWithAggregatesFilter<"Rating"> | number
   review?: Prisma.StringNullableWithAggregatesFilter<"Rating"> | string | null
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"Rating"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Rating"> | Date | string
 }
 
 export type RatingCreateInput = {
-  id: string
+  id?: string
   rating: number
   review?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
   bookingRating: Prisma.BookingCreateNestedOneWithoutRatingsInput
 }
 
 export type RatingUncheckedCreateInput = {
-  id: string
+  id?: string
   booking_id: string
   rating: number
   review?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type RatingUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   bookingRating?: Prisma.BookingUpdateOneRequiredWithoutRatingsNestedInput
 }
 
@@ -278,19 +308,25 @@ export type RatingUncheckedUpdateInput = {
   booking_id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type RatingCreateManyInput = {
-  id: string
+  id?: string
   booking_id: string
   rating: number
   review?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type RatingUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type RatingUncheckedUpdateManyInput = {
@@ -298,6 +334,8 @@ export type RatingUncheckedUpdateManyInput = {
   booking_id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type RatingNullableScalarRelationFilter = {
@@ -310,6 +348,8 @@ export type RatingCountOrderByAggregateInput = {
   booking_id?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type RatingAvgOrderByAggregateInput = {
@@ -321,6 +361,8 @@ export type RatingMaxOrderByAggregateInput = {
   booking_id?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type RatingMinOrderByAggregateInput = {
@@ -328,6 +370,8 @@ export type RatingMinOrderByAggregateInput = {
   booking_id?: Prisma.SortOrder
   rating?: Prisma.SortOrder
   review?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type RatingSumOrderByAggregateInput = {
@@ -367,15 +411,19 @@ export type RatingUncheckedUpdateOneWithoutBookingRatingNestedInput = {
 }
 
 export type RatingCreateWithoutBookingRatingInput = {
-  id: string
+  id?: string
   rating: number
   review?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type RatingUncheckedCreateWithoutBookingRatingInput = {
-  id: string
+  id?: string
   rating: number
   review?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type RatingCreateOrConnectWithoutBookingRatingInput = {
@@ -398,12 +446,16 @@ export type RatingUpdateWithoutBookingRatingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type RatingUncheckedUpdateWithoutBookingRatingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   rating?: Prisma.IntFieldUpdateOperationsInput | number
   review?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -413,6 +465,8 @@ export type RatingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   booking_id?: boolean
   rating?: boolean
   review?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   bookingRating?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["rating"]>
 
@@ -421,6 +475,8 @@ export type RatingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   booking_id?: boolean
   rating?: boolean
   review?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   bookingRating?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["rating"]>
 
@@ -429,6 +485,8 @@ export type RatingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   booking_id?: boolean
   rating?: boolean
   review?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   bookingRating?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["rating"]>
 
@@ -437,9 +495,11 @@ export type RatingSelectScalar = {
   booking_id?: boolean
   rating?: boolean
   review?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }
 
-export type RatingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "booking_id" | "rating" | "review", ExtArgs["result"]["rating"]>
+export type RatingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "booking_id" | "rating" | "review" | "createdAt" | "updatedAt", ExtArgs["result"]["rating"]>
 export type RatingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   bookingRating?: boolean | Prisma.BookingDefaultArgs<ExtArgs>
 }
@@ -460,6 +520,8 @@ export type $RatingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     booking_id: string
     rating: number
     review: string | null
+    createdAt: Date
+    updatedAt: Date
   }, ExtArgs["result"]["rating"]>
   composites: {}
 }
@@ -888,6 +950,8 @@ export interface RatingFieldRefs {
   readonly booking_id: Prisma.FieldRef<"Rating", 'String'>
   readonly rating: Prisma.FieldRef<"Rating", 'Int'>
   readonly review: Prisma.FieldRef<"Rating", 'String'>
+  readonly createdAt: Prisma.FieldRef<"Rating", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"Rating", 'DateTime'>
 }
     
 
