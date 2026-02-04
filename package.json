@@ -9,7 +9,7 @@
     "dev": "npx tsx watch src/server.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
-    "vercel-build": "prisma generate && prisma migrate deploy && tsc",
+    "vercel-build": "prisma generate && tsc",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
