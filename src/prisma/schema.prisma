@@ -36,7 +36,7 @@ model User {
   bookings      Booking[]
 
   @@unique([email])
-  @@map("userS")
+  @@map("users")
 }
 
 model Session {
@@ -100,11 +100,9 @@ model TutorProfile {
   id             String      @id @unique
   user_id        String
   category_id    String
-  subject        String
   description    String?
   price_per_hour Int
   featured       Boolean     @default(false)
-  tag            String[]
   category       Category    @relation(fields: [category_id], references: [id])
   userToTutor    User        @relation(fields: [user_id], references: [id])
   availables     Available[]
