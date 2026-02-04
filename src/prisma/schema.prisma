@@ -157,7 +157,11 @@ model Booking {
 model Rating {
   id            String  @id @unique
   booking_id    String  @unique
-  rating        Int
+  rating        Int     @db.SmallInt
   review        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   bookingRating Booking @relation(fields: [booking_id], references: [id])
+
+  @@map("ratings")
 }
