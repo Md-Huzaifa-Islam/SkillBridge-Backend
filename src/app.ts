@@ -11,7 +11,6 @@ app.use(
     credentials: true,
   }),
 );
+app.use(express.json());
 
 app.use("/api", ApiRoutes);
-
-app.use(express.json());

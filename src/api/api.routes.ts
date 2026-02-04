@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "../lib/auth";
+import { AuthRoutes } from "./auth/auth.routes";
 
 const router = Router();
 
-// betterauth management system
-router.all("/auth/*splat", toNodeHandler(auth));
+// this is for authentication
+router.use("/auth", AuthRoutes);
 
 // tutor routes
 // router.use("/tutors",)
