@@ -19,4 +19,10 @@ router.get(
   BookingsController.getBookingDetails,
 );
 
+router.patch(
+  "/:id",
+  auth(UsersRole.student, UsersRole.teacher, UsersRole.admin),
+  BookingsController.updateBookingStatus,
+);
+
 export { router as BookingRoutes };

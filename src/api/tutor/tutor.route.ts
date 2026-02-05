@@ -5,8 +5,14 @@ import { UsersRole } from "../../generated/prisma/enums";
 
 const router = Router();
 
+// Get tutor profile - only accessible by teacher role
+router.get("/profile", auth(UsersRole.teacher), TutorController.getProfile);
+
 // Update tutor profile - only accessible by teacher role
 router.put("/profile", auth(UsersRole.teacher), TutorController.updateProfile);
+
+// Get tutor sessions - only accessible by teacher role
+router.get("/sessions", auth(UsersRole.teacher), TutorController.getSessions);
 
 // Update availability - only accessible by teacher role
 router.put(

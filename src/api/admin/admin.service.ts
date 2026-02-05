@@ -49,6 +49,45 @@ export class AdminService {
     }
   }
 
+  static async getAllBookings() {
+    try {
+      const bookings = await prisma.booking.findMany({
+        include: {
+          bookingStudent: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          bookingTutor: {
+            include: {
+              category: true,
+              userToTutor: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true,
+                },
+              },
+            },
+          },
+          ratings: true,
+        },
+        orderBy: {
+          date: "desc",
+        },
+      });
+
+      return bookings;
+    } catch (error: any) {
+      console.error("Error in getAllBookings service:", error);
+      throw error;
+    }
+  }
+
   static async updateUserStatus(userId: string, data: UpdateUserStatusData) {
     try {
       // Check if user exists

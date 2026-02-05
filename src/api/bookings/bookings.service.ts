@@ -203,8 +203,95 @@ const getBookingDetails = async (
   return booking;
 };
 
+const updateBookingStatus = async (
+  bookingId: string,
+  userId: string,
+  userRole: string | undefined,
+  status: string,
+) => {
+  // Find the booking first
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      bookingTutor: true,
+    },
+  });
+
+  if (!booking) {
+    const error: any = new Error("Booking not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Check permissions
+  if (userRole === "student") {
+    // Students can only cancel their own bookings
+    if (booking.student_id !== userId) {
+      const error: any = new Error(
+        "You don't have permission to update this booking",
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+    if (status !== "cancelled") {
+      const error: any = new Error("Students can only cancel bookings");
+      error.statusCode = 400;
+      throw error;
+    }
+  } else if (userRole === "teacher") {
+    // Tutors can mark bookings as completed or cancelled
+    if (booking.bookingTutor.user_id !== userId) {
+      const error: any = new Error(
+        "You don't have permission to update this booking",
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+    if (!["completed", "cancelled"].includes(status)) {
+      const error: any = new Error(
+        "Tutors can only mark bookings as completed or cancelled",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+  // Admin can update any booking status
+
+  const updatedBooking = await prisma.booking.update({
+    where: { id: bookingId },
+    data: { status: status as any },
+    include: {
+      bookingTutor: {
+        include: {
+          userToTutor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          category: true,
+        },
+      },
+      bookingStudent: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+      ratings: true,
+    },
+  });
+
+  return updatedBooking;
+};
+
 export const BookingsService = {
   createBooking,
   getUserBookings,
   getBookingDetails,
+  updateBookingStatus,
 };

@@ -30,6 +30,29 @@ export class AdminController {
   }
 
   /**
+   * Get all bookings in the system
+   * @route GET /api/admin/bookings
+   * @access Private (Admin only)
+   */
+  static async getAllBookings(req: Request, res: Response) {
+    try {
+      const bookings = await AdminService.getAllBookings();
+
+      return res.status(200).json({
+        success: true,
+        message: "Bookings retrieved successfully",
+        data: bookings,
+      });
+    } catch (error: any) {
+      console.error("Error fetching bookings:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to fetch bookings",
+      });
+    }
+  }
+
+  /**
    * Update user status (ban/unban) or role
    * @route PATCH /api/admin/users/:id
    * @access Private (Admin only)

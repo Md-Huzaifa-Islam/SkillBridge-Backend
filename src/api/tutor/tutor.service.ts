@@ -14,17 +14,153 @@ interface AvailabilityEntry {
 }
 
 export class TutorService {
-  static async updateProfile(userId: string, data: UpdateProfileData) {
+  static async getProfile(userId: string) {
     try {
-      // First, find the tutor profile for this user
+      const tutorProfile = await prisma.tutorProfile.findFirst({
+        where: { user_id: userId },
+        include: {
+          category: true,
+          userToTutor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          availables: true,
+          bookings: {
+            include: {
+              ratings: true,
+            },
+          },
+        },
+      });
+
+      if (!tutorProfile) {
+        return null;
+      }
+
+      // Calculate average rating
+      const ratings = tutorProfile.bookings
+        .filter((b) => b.ratings)
+        .map((b) => b.ratings!.rating);
+      const averageRating =
+        ratings.length > 0
+          ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+          : null;
+
+      return {
+        ...tutorProfile,
+        averageRating,
+      };
+    } catch (error: any) {
+      console.error("Error in getProfile service:", error);
+      throw error;
+    }
+  }
+
+  static async getSessions(userId: string) {
+    try {
       const tutorProfile = await prisma.tutorProfile.findFirst({
         where: { user_id: userId },
       });
 
       if (!tutorProfile) {
-        const error: any = new Error("Tutor profile not found for this user");
+        const error: any = new Error("Tutor profile not found");
         error.statusCode = 404;
         throw error;
+      }
+
+      const sessions = await prisma.booking.findMany({
+        where: { tutor_id: tutorProfile.id },
+        include: {
+          bookingStudent: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          bookingTutor: {
+            include: {
+              category: true,
+              userToTutor: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true,
+                },
+              },
+            },
+          },
+          ratings: true,
+        },
+        orderBy: {
+          date: "desc",
+        },
+      });
+
+      return sessions;
+    } catch (error: any) {
+      console.error("Error in getSessions service:", error);
+      throw error;
+    }
+  }
+
+  static async updateProfile(userId: string, data: UpdateProfileData) {
+    try {
+      // First, find the tutor profile for this user
+      let tutorProfile = await prisma.tutorProfile.findFirst({
+        where: { user_id: userId },
+      });
+
+      // If no profile exists, create one
+      if (!tutorProfile) {
+        // Validate required fields for new profile
+        if (!data.category_id || !data.price_per_hour) {
+          const error: any = new Error(
+            "category_id and price_per_hour are required to create a tutor profile",
+          );
+          error.statusCode = 400;
+          throw error;
+        }
+
+        // Verify category exists
+        const category = await prisma.category.findUnique({
+          where: { id: data.category_id },
+        });
+
+        if (!category) {
+          const error: any = new Error("Category not found");
+          error.statusCode = 404;
+          throw error;
+        }
+
+        // Create new profile
+        tutorProfile = await prisma.tutorProfile.create({
+          data: {
+            user_id: userId,
+            category_id: data.category_id,
+            price_per_hour: data.price_per_hour,
+            description: data.description || null,
+          },
+          include: {
+            category: true,
+            userToTutor: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
+          },
+        });
+
+        return tutorProfile;
       }
 
       // If category_id is provided, verify it exists

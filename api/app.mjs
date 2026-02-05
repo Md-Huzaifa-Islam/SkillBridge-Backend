@@ -203,6 +203,14 @@ var loginUser = async ({ password, email }) => {
     asResponse: true
   });
 };
+var verifyEmail = async (token) => {
+  return auth.api.verifyEmail({
+    query: {
+      token
+    },
+    asResponse: true
+  });
+};
 var userDetails = async (id) => {
   return await prisma.user.findUnique({
     where: { id },
@@ -217,6 +225,7 @@ var userDetails = async (id) => {
 var AuthServices = {
   registerUser,
   loginUser,
+  verifyEmail,
   userDetails
 };
 
@@ -244,6 +253,14 @@ var registerUser2 = async (req, res) => {
       res.setHeader("Set-Cookie", setCookieHeader);
     }
     const data = await result.json();
+    const isSuccess = result.status >= 200 && result.status < 300;
+    if (!isSuccess) {
+      return res.status(result.status).json({
+        success: false,
+        message: data?.message || data?.error || "Registration failed",
+        error: data?.error
+      });
+    }
     return res.status(result.status).json({
       success: true,
       message: "User registered successfully. Please verify your email.",
@@ -277,6 +294,14 @@ var loginUser2 = async (req, res) => {
       res.setHeader("Set-Cookie", setCookieHeader);
     }
     const data = await result.json();
+    const isSuccess = result.status >= 200 && result.status < 300;
+    if (!isSuccess) {
+      return res.status(result.status).json({
+        success: false,
+        message: data?.message || data?.error || "Invalid email or password",
+        error: data?.error
+      });
+    }
     return res.status(result.status).json({
       success: true,
       message: "Login successful",
@@ -291,19 +316,74 @@ var loginUser2 = async (req, res) => {
 };
 var userDetails2 = async (req, res) => {
   try {
-    const result = await AuthServices.userDetails(req.user?.id);
-    res.status(200).json(result);
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated"
+      });
+    }
+    const result = await AuthServices.userDetails(userId);
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: "User details retrieved successfully",
+      data: result
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error?.message || "Failed to login"
+      message: error?.message || "Failed to get user details"
+    });
+  }
+};
+var verifyEmail2 = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Verification token is required"
+      });
+    }
+    const result = await AuthServices.verifyEmail(token);
+    if (!result) {
+      return res.status(400).json({
+        success: false,
+        message: "Failed to verify email"
+      });
+    }
+    const data = await result.json();
+    const isSuccess = result.status >= 200 && result.status < 300;
+    if (!isSuccess) {
+      return res.status(result.status).json({
+        success: false,
+        message: data?.message || data?.error || "Email verification failed. The link may have expired.",
+        error: data?.error
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Email verified successfully",
+      data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to verify email"
     });
   }
 };
 var AuthControllers = {
   registerUser: registerUser2,
   loginUser: loginUser2,
-  userDetails: userDetails2
+  userDetails: userDetails2,
+  verifyEmail: verifyEmail2
 };
 
 // src/middleware/auth.ts
@@ -342,6 +422,7 @@ var auth2 = (...roles) => {
 var router = Router();
 router.post("/register", AuthControllers.registerUser);
 router.post("/login", AuthControllers.loginUser);
+router.get("/verify-email", AuthControllers.verifyEmail);
 router.get(
   "/me",
   auth2(UsersRole.admin, UsersRole.student, UsersRole.teacher),
@@ -873,10 +954,82 @@ var getBookingDetails = async (bookingId, userId, userRole) => {
   }
   return booking;
 };
+var updateBookingStatus = async (bookingId, userId, userRole, status) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      bookingTutor: true
+    }
+  });
+  if (!booking) {
+    const error = new Error("Booking not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  if (userRole === "student") {
+    if (booking.student_id !== userId) {
+      const error = new Error(
+        "You don't have permission to update this booking"
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+    if (status !== "cancelled") {
+      const error = new Error("Students can only cancel bookings");
+      error.statusCode = 400;
+      throw error;
+    }
+  } else if (userRole === "teacher") {
+    if (booking.bookingTutor.user_id !== userId) {
+      const error = new Error(
+        "You don't have permission to update this booking"
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+    if (!["completed", "cancelled"].includes(status)) {
+      const error = new Error(
+        "Tutors can only mark bookings as completed or cancelled"
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+  const updatedBooking = await prisma.booking.update({
+    where: { id: bookingId },
+    data: { status },
+    include: {
+      bookingTutor: {
+        include: {
+          userToTutor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true
+            }
+          },
+          category: true
+        }
+      },
+      bookingStudent: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true
+        }
+      },
+      ratings: true
+    }
+  });
+  return updatedBooking;
+};
 var BookingsService = {
   createBooking,
   getUserBookings,
-  getBookingDetails
+  getBookingDetails,
+  updateBookingStatus
 };
 
 // src/api/bookings/bookings.controller.ts
@@ -993,10 +1146,61 @@ var getBookingDetails2 = async (req, res) => {
     });
   }
 };
+var updateBookingStatus2 = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User not found"
+      });
+    }
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Valid booking ID is required"
+      });
+    }
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "Status is required"
+      });
+    }
+    const validStatuses = ["confirm", "completed", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`
+      });
+    }
+    const booking = await BookingsService.updateBookingStatus(
+      id,
+      userId,
+      userRole,
+      status
+    );
+    res.status(200).json({
+      success: true,
+      message: "Booking status updated successfully",
+      data: booking
+    });
+  } catch (error) {
+    console.error("Error updating booking status:", error);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to update booking status"
+    });
+  }
+};
 var BookingsController = {
   createBooking: createBooking2,
   getUserBookings: getUserBookings2,
-  getBookingDetails: getBookingDetails2
+  getBookingDetails: getBookingDetails2,
+  updateBookingStatus: updateBookingStatus2
 };
 
 // src/api/bookings/bookings.route.ts
@@ -1012,21 +1216,140 @@ router4.get(
   auth2(UsersRole.student, UsersRole.teacher, UsersRole.admin),
   BookingsController.getBookingDetails
 );
+router4.patch(
+  "/:id",
+  auth2(UsersRole.student, UsersRole.teacher, UsersRole.admin),
+  BookingsController.updateBookingStatus
+);
 
 // src/api/tutor/tutor.route.ts
 import { Router as Router5 } from "express";
 
 // src/api/tutor/tutor.service.ts
 var TutorService = class {
-  static async updateProfile(userId, data) {
+  static async getProfile(userId) {
+    try {
+      const tutorProfile = await prisma.tutorProfile.findFirst({
+        where: { user_id: userId },
+        include: {
+          category: true,
+          userToTutor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true
+            }
+          },
+          availables: true,
+          bookings: {
+            include: {
+              ratings: true
+            }
+          }
+        }
+      });
+      if (!tutorProfile) {
+        return null;
+      }
+      const ratings = tutorProfile.bookings.filter((b) => b.ratings).map((b) => b.ratings.rating);
+      const averageRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
+      return {
+        ...tutorProfile,
+        averageRating
+      };
+    } catch (error) {
+      console.error("Error in getProfile service:", error);
+      throw error;
+    }
+  }
+  static async getSessions(userId) {
     try {
       const tutorProfile = await prisma.tutorProfile.findFirst({
         where: { user_id: userId }
       });
       if (!tutorProfile) {
-        const error = new Error("Tutor profile not found for this user");
+        const error = new Error("Tutor profile not found");
         error.statusCode = 404;
         throw error;
+      }
+      const sessions = await prisma.booking.findMany({
+        where: { tutor_id: tutorProfile.id },
+        include: {
+          bookingStudent: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true
+            }
+          },
+          bookingTutor: {
+            include: {
+              category: true,
+              userToTutor: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true
+                }
+              }
+            }
+          },
+          ratings: true
+        },
+        orderBy: {
+          date: "desc"
+        }
+      });
+      return sessions;
+    } catch (error) {
+      console.error("Error in getSessions service:", error);
+      throw error;
+    }
+  }
+  static async updateProfile(userId, data) {
+    try {
+      let tutorProfile = await prisma.tutorProfile.findFirst({
+        where: { user_id: userId }
+      });
+      if (!tutorProfile) {
+        if (!data.category_id || !data.price_per_hour) {
+          const error = new Error(
+            "category_id and price_per_hour are required to create a tutor profile"
+          );
+          error.statusCode = 400;
+          throw error;
+        }
+        const category = await prisma.category.findUnique({
+          where: { id: data.category_id }
+        });
+        if (!category) {
+          const error = new Error("Category not found");
+          error.statusCode = 404;
+          throw error;
+        }
+        tutorProfile = await prisma.tutorProfile.create({
+          data: {
+            user_id: userId,
+            category_id: data.category_id,
+            price_per_hour: data.price_per_hour,
+            description: data.description || null
+          },
+          include: {
+            category: true,
+            userToTutor: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true
+              }
+            }
+          }
+        });
+        return tutorProfile;
       }
       if (data.category_id) {
         const category = await prisma.category.findUnique({
@@ -1101,6 +1424,58 @@ var TutorService = class {
 
 // src/api/tutor/tutor.controller.ts
 var TutorController = class {
+  static async getProfile(req, res) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User not authenticated"
+        });
+      }
+      const profile = await TutorService.getProfile(userId);
+      if (!profile) {
+        return res.status(404).json({
+          success: false,
+          message: "Tutor profile not found. Please create one first."
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        message: "Profile retrieved successfully",
+        data: profile
+      });
+    } catch (error) {
+      console.error("Error getting tutor profile:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to get profile"
+      });
+    }
+  }
+  static async getSessions(req, res) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User not authenticated"
+        });
+      }
+      const sessions = await TutorService.getSessions(userId);
+      return res.status(200).json({
+        success: true,
+        message: "Sessions retrieved successfully",
+        data: sessions
+      });
+    } catch (error) {
+      console.error("Error getting tutor sessions:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to get sessions"
+      });
+    }
+  }
   static async updateProfile(req, res) {
     try {
       const userId = req.user?.id;
@@ -1180,7 +1555,9 @@ var TutorController = class {
 
 // src/api/tutor/tutor.route.ts
 var router5 = Router5();
+router5.get("/profile", auth2(UsersRole.teacher), TutorController.getProfile);
 router5.put("/profile", auth2(UsersRole.teacher), TutorController.updateProfile);
+router5.get("/sessions", auth2(UsersRole.teacher), TutorController.getSessions);
 router5.put(
   "/availability",
   auth2(UsersRole.teacher),
@@ -1349,6 +1726,43 @@ var AdminService = class {
       throw error;
     }
   }
+  static async getAllBookings() {
+    try {
+      const bookings = await prisma.booking.findMany({
+        include: {
+          bookingStudent: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true
+            }
+          },
+          bookingTutor: {
+            include: {
+              category: true,
+              userToTutor: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true
+                }
+              }
+            }
+          },
+          ratings: true
+        },
+        orderBy: {
+          date: "desc"
+        }
+      });
+      return bookings;
+    } catch (error) {
+      console.error("Error in getAllBookings service:", error);
+      throw error;
+    }
+  }
   static async updateUserStatus(userId, data) {
     try {
       const user = await prisma.user.findUnique({
@@ -1409,6 +1823,27 @@ var AdminController = class {
     }
   }
   /**
+   * Get all bookings in the system
+   * @route GET /api/admin/bookings
+   * @access Private (Admin only)
+   */
+  static async getAllBookings(req, res) {
+    try {
+      const bookings = await AdminService.getAllBookings();
+      return res.status(200).json({
+        success: true,
+        message: "Bookings retrieved successfully",
+        data: bookings
+      });
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to fetch bookings"
+      });
+    }
+  }
+  /**
    * Update user status (ban/unban) or role
    * @route PATCH /api/admin/users/:id
    * @access Private (Admin only)
@@ -1451,6 +1886,7 @@ var AdminController = class {
 // src/api/admin/admin.routes.ts
 var router7 = Router7();
 router7.get("/users", auth2(UsersRole.admin), AdminController.getAllUsers);
+router7.get("/bookings", auth2(UsersRole.admin), AdminController.getAllBookings);
 router7.patch(
   "/users/:id",
   auth2(UsersRole.admin),

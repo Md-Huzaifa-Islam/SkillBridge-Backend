@@ -2,6 +2,67 @@ import { Request, Response } from "express";
 import { TutorService } from "./tutor.service";
 
 export class TutorController {
+  static async getProfile(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User not authenticated",
+        });
+      }
+
+      const profile = await TutorService.getProfile(userId);
+
+      if (!profile) {
+        return res.status(404).json({
+          success: false,
+          message: "Tutor profile not found. Please create one first.",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Profile retrieved successfully",
+        data: profile,
+      });
+    } catch (error: any) {
+      console.error("Error getting tutor profile:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to get profile",
+      });
+    }
+  }
+
+  static async getSessions(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User not authenticated",
+        });
+      }
+
+      const sessions = await TutorService.getSessions(userId);
+
+      return res.status(200).json({
+        success: true,
+        message: "Sessions retrieved successfully",
+        data: sessions,
+      });
+    } catch (error: any) {
+      console.error("Error getting tutor sessions:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to get sessions",
+      });
+    }
+  }
+
   static async updateProfile(req: Request, res: Response) {
     try {
       const userId = req.user?.id;

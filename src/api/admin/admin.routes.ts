@@ -8,6 +8,9 @@ const router = Router();
 // Get all users - only accessible by admin role
 router.get("/users", auth(UsersRole.admin), AdminController.getAllUsers);
 
+// Get all bookings - only accessible by admin role
+router.get("/bookings", auth(UsersRole.admin), AdminController.getAllBookings);
+
 // Update user status - only accessible by admin role
 router.patch(
   "/users/:id",

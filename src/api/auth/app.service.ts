@@ -29,6 +29,15 @@ const loginUser = async ({ password, email }: LoginParams) => {
   });
 };
 
+const verifyEmail = async (token: string) => {
+  return auth.api.verifyEmail({
+    query: {
+      token,
+    },
+    asResponse: true,
+  });
+};
+
 const userDetails = async (id: string) => {
   return await prisma.user.findUnique({
     where: { id },
@@ -44,5 +53,6 @@ const userDetails = async (id: string) => {
 export const AuthServices = {
   registerUser,
   loginUser,
+  verifyEmail,
   userDetails,
 };

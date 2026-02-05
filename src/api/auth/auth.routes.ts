@@ -11,6 +11,9 @@ router.post("/register", AuthControllers.registerUser);
 // login a user
 router.post("/login", AuthControllers.loginUser);
 
+// verify email
+router.get("/verify-email", AuthControllers.verifyEmail);
+
 // get user details
 router.get(
   "/me",
