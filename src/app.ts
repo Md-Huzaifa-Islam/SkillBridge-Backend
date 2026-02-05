@@ -1,10 +1,10 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import { ApiRoutes } from "./api/api.routes";
 import cors from "cors";
 import { config } from "./config/config";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
-export const app = express();
+const app = express();
 
 app.use(
   cors({
@@ -16,6 +16,13 @@ app.use(express.json());
 
 app.use("/api", ApiRoutes);
 
+app.get("/", (req: Request, res: Response) => {
+  res.status(200).json({ message: "The skill bridge is running ok" });
+});
+
 // Error handlers (must be last)
 app.use(notFoundHandler);
 app.use(errorHandler);
+
+// Export for Vercel serverless
+export default app;

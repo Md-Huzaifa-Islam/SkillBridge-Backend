@@ -14,7 +14,7 @@ export const auth = betterAuth({
     cookiePrefix: "skill_bridge",
   },
 
-  trustedOrigins: [config.app_url!],
+  trustedOrigins: [config.app_url!, config.better_url!],
 
   emailAndPassword: {
     enabled: true,

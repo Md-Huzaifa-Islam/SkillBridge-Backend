@@ -1,0 +1,1515 @@
+import { createRequire } from 'module';const require = createRequire(import.meta.url);
+
+// src/app.ts
+import express from "express";
+
+// src/api/api.routes.ts
+import { Router as Router8 } from "express";
+
+// src/api/auth/auth.routes.ts
+import { Router } from "express";
+
+// src/generated/prisma/enums.ts
+var UsersRole = {
+  teacher: "teacher",
+  admin: "admin",
+  student: "student"
+};
+
+// src/lib/auth.ts
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+
+// src/config/config.ts
+import "dotenv/config";
+var config = {
+  port: process.env.PORT || 3e3,
+  node_env: process.env.NODE_ENV || "development",
+  better_url: process.env.BETTER_AUTH_URL,
+  app_url: process.env.app_url,
+  smtp_host: process.env.SMTP_HOST,
+  smtp_port: Number(process.env.SMTP_PORT),
+  smtp_secure: process.env.SMTP_SECURE === "true",
+  smtp_user: process.env.SMTP_USER,
+  smtp_pass: process.env.SMTP_PASS,
+  smtp_from: process.env.SMTP_FROM
+};
+
+// src/lib/prisma.ts
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+// src/generated/prisma/client.ts
+import * as path from "path";
+import { fileURLToPath } from "url";
+
+// src/generated/prisma/internal/class.ts
+import * as runtime from "@prisma/client/runtime/client";
+var config2 = {
+  "previewFeatures": [],
+  "clientVersion": "7.3.0",
+  "engineVersion": "9d6ad21cbbceab97458517b147a6a09ff43aa735",
+  "activeProvider": "postgresql",
+  "inlineSchema": 'generator client {\n  provider = "prisma-client"\n  output   = "../generated/prisma"\n}\n\ndatasource db {\n  provider = "postgresql"\n}\n\nenum UsersRole {\n  teacher @map("TEACHER")\n  admin   @map("ADMIN")\n  student @map("STUDENT")\n}\n\nmodel User {\n  id            String    @id\n  name          String\n  email         String\n  emailVerified Boolean   @default(false)\n  image         String?\n  createdAt     DateTime  @default(now())\n  updatedAt     DateTime  @updatedAt\n  sessions      Session[]\n  accounts      Account[]\n\n  role          UsersRole      @default(student)\n  is_banned     Boolean        @default(false)\n  tutorProfiles TutorProfile[]\n  bookings      Booking[]\n\n  @@unique([email])\n  @@map("users")\n}\n\nmodel Session {\n  id        String   @id\n  expiresAt DateTime\n  token     String\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n  ipAddress String?\n  userAgent String?\n  userId    String\n  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)\n\n  @@unique([token])\n  @@index([userId])\n  @@map("session")\n}\n\nmodel Account {\n  id                    String    @id\n  accountId             String\n  providerId            String\n  userId                String\n  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)\n  accessToken           String?\n  refreshToken          String?\n  idToken               String?\n  accessTokenExpiresAt  DateTime?\n  refreshTokenExpiresAt DateTime?\n  scope                 String?\n  password              String?\n  createdAt             DateTime  @default(now())\n  updatedAt             DateTime  @updatedAt\n\n  @@index([userId])\n  @@map("account")\n}\n\nmodel Verification {\n  id         String   @id\n  identifier String\n  value      String\n  expiresAt  DateTime\n  createdAt  DateTime @default(now())\n  updatedAt  DateTime @updatedAt\n\n  @@index([identifier])\n  @@map("verification")\n}\n\nmodel Category {\n  id   String @id @unique @default(uuid())\n  name String\n\n  tutors TutorProfile[]\n}\n\nmodel TutorProfile {\n  id             String      @id @unique @default(uuid())\n  user_id        String\n  category_id    String\n  description    String?\n  price_per_hour Int\n  featured       Boolean     @default(false)\n  category       Category    @relation(fields: [category_id], references: [id])\n  userToTutor    User        @relation(fields: [user_id], references: [id])\n  availables     Available[]\n  bookings       Booking[]\n\n  @@map("tutor_profiles")\n}\n\nenum WeekDay {\n  saturday  @map("SATURDAY")\n  sunday    @map("SUNDAY")\n  monday    @map("MONDAY")\n  tuesday   @map("TUESDAY")\n  wednesday @map("WEDNESDAY")\n  thursday  @map("THURSDAY")\n  friday    @map("FRIDAY")\n}\n\nmodel Available {\n  id             String       @id @unique @default(uuid())\n  start_time     DateTime     @db.Time()\n  end_time       DateTime     @db.Time()\n  tutor_id       String\n  day            WeekDay\n  availableTutor TutorProfile @relation(fields: [tutor_id], references: [id])\n\n  @@map("available_days")\n}\n\nenum BookingStatus {\n  confirm   @map("CONFIRM")\n  completed @map("COMPLETED")\n  cancelled @map("CANCELLED")\n}\n\nmodel Booking {\n  id             String        @id @unique @default(uuid())\n  tutor_id       String\n  student_id     String\n  start_time     DateTime      @db.Time()\n  end_time       DateTime      @db.Time()\n  date           DateTime      @db.Time()\n  total_price    Int\n  status         BookingStatus @default(confirm)\n  bookingTutor   TutorProfile  @relation(fields: [tutor_id], references: [id])\n  bookingStudent User          @relation(fields: [student_id], references: [id])\n  ratings        Rating?\n\n  @@map("bookings")\n}\n\nmodel Rating {\n  id            String   @id @unique @default(uuid())\n  booking_id    String   @unique\n  rating        Int      @db.SmallInt\n  review        String?\n  createdAt     DateTime @default(now())\n  updatedAt     DateTime @updatedAt\n  bookingRating Booking  @relation(fields: [booking_id], references: [id])\n\n  @@map("ratings")\n}\n',
+  "runtimeDataModel": {
+    "models": {},
+    "enums": {},
+    "types": {}
+  }
+};
+config2.runtimeDataModel = JSON.parse('{"models":{"User":{"fields":[{"name":"id","kind":"scalar","type":"String"},{"name":"name","kind":"scalar","type":"String"},{"name":"email","kind":"scalar","type":"String"},{"name":"emailVerified","kind":"scalar","type":"Boolean"},{"name":"image","kind":"scalar","type":"String"},{"name":"createdAt","kind":"scalar","type":"DateTime"},{"name":"updatedAt","kind":"scalar","type":"DateTime"},{"name":"sessions","kind":"object","type":"Session","relationName":"SessionToUser"},{"name":"accounts","kind":"object","type":"Account","relationName":"AccountToUser"},{"name":"role","kind":"enum","type":"UsersRole"},{"name":"is_banned","kind":"scalar","type":"Boolean"},{"name":"tutorProfiles","kind":"object","type":"TutorProfile","relationName":"TutorProfileToUser"},{"name":"bookings","kind":"object","type":"Booking","relationName":"BookingToUser"}],"dbName":"users"},"Session":{"fields":[{"name":"id","kind":"scalar","type":"String"},{"name":"expiresAt","kind":"scalar","type":"DateTime"},{"name":"token","kind":"scalar","type":"String"},{"name":"createdAt","kind":"scalar","type":"DateTime"},{"name":"updatedAt","kind":"scalar","type":"DateTime"},{"name":"ipAddress","kind":"scalar","type":"String"},{"name":"userAgent","kind":"scalar","type":"String"},{"name":"userId","kind":"scalar","type":"String"},{"name":"user","kind":"object","type":"User","relationName":"SessionToUser"}],"dbName":"session"},"Account":{"fields":[{"name":"id","kind":"scalar","type":"String"},{"name":"accountId","kind":"scalar","type":"String"},{"name":"providerId","kind":"scalar","type":"String"},{"name":"userId","kind":"scalar","type":"String"},{"name":"user","kind":"object","type":"User","relationName":"AccountToUser"},{"name":"accessToken","kind":"scalar","type":"String"},{"name":"refreshToken","kind":"scalar","type":"String"},{"name":"idToken","kind":"scalar","type":"String"},{"name":"accessTokenExpiresAt","kind":"scalar","type":"DateTime"},{"name":"refreshTokenExpiresAt","kind":"scalar","type":"DateTime"},{"name":"scope","kind":"scalar","type":"String"},{"name":"password","kind":"scalar","type":"String"},{"name":"createdAt","kind":"scalar","type":"DateTime"},{"name":"updatedAt","kind":"scalar","type":"DateTime"}],"dbName":"account"},"Verification":{"fields":[{"name":"id","kind":"scalar","type":"String"},{"name":"identifier","kind":"scalar","type":"String"},{"name":"value","kind":"scalar","type":"String"},{"name":"expiresAt","kind":"scalar","type":"DateTime"},{"name":"createdAt","kind":"scalar","type":"DateTime"},{"name":"updatedAt","kind":"scalar","type":"DateTime"}],"dbName":"verification"},"Category":{"fields":[{"name":"id","kind":"scalar","type":"String"},{"name":"name","kind":"scalar","type":"String"},{"name":"tutors","kind":"object","type":"TutorProfile","relationName":"CategoryToTutorProfile"}],"dbName":null},"TutorProfile":{"fields":[{"name":"id","kind":"scalar","type":"String"},{"name":"user_id","kind":"scalar","type":"String"},{"name":"category_id","kind":"scalar","type":"String"},{"name":"description","kind":"scalar","type":"String"},{"name":"price_per_hour","kind":"scalar","type":"Int"},{"name":"featured","kind":"scalar","type":"Boolean"},{"name":"category","kind":"object","type":"Category","relationName":"CategoryToTutorProfile"},{"name":"userToTutor","kind":"object","type":"User","relationName":"TutorProfileToUser"},{"name":"availables","kind":"object","type":"Available","relationName":"AvailableToTutorProfile"},{"name":"bookings","kind":"object","type":"Booking","relationName":"BookingToTutorProfile"}],"dbName":"tutor_profiles"},"Available":{"fields":[{"name":"id","kind":"scalar","type":"String"},{"name":"start_time","kind":"scalar","type":"DateTime"},{"name":"end_time","kind":"scalar","type":"DateTime"},{"name":"tutor_id","kind":"scalar","type":"String"},{"name":"day","kind":"enum","type":"WeekDay"},{"name":"availableTutor","kind":"object","type":"TutorProfile","relationName":"AvailableToTutorProfile"}],"dbName":"available_days"},"Booking":{"fields":[{"name":"id","kind":"scalar","type":"String"},{"name":"tutor_id","kind":"scalar","type":"String"},{"name":"student_id","kind":"scalar","type":"String"},{"name":"start_time","kind":"scalar","type":"DateTime"},{"name":"end_time","kind":"scalar","type":"DateTime"},{"name":"date","kind":"scalar","type":"DateTime"},{"name":"total_price","kind":"scalar","type":"Int"},{"name":"status","kind":"enum","type":"BookingStatus"},{"name":"bookingTutor","kind":"object","type":"TutorProfile","relationName":"BookingToTutorProfile"},{"name":"bookingStudent","kind":"object","type":"User","relationName":"BookingToUser"},{"name":"ratings","kind":"object","type":"Rating","relationName":"BookingToRating"}],"dbName":"bookings"},"Rating":{"fields":[{"name":"id","kind":"scalar","type":"String"},{"name":"booking_id","kind":"scalar","type":"String"},{"name":"rating","kind":"scalar","type":"Int"},{"name":"review","kind":"scalar","type":"String"},{"name":"createdAt","kind":"scalar","type":"DateTime"},{"name":"updatedAt","kind":"scalar","type":"DateTime"},{"name":"bookingRating","kind":"object","type":"Booking","relationName":"BookingToRating"}],"dbName":"ratings"}},"enums":{},"types":{}}');
+async function decodeBase64AsWasm(wasmBase64) {
+  const { Buffer } = await import("buffer");
+  const wasmArray = Buffer.from(wasmBase64, "base64");
+  return new WebAssembly.Module(wasmArray);
+}
+config2.compilerWasm = {
+  getRuntime: async () => await import("@prisma/client/runtime/query_compiler_fast_bg.postgresql.mjs"),
+  getQueryCompilerWasmModule: async () => {
+    const { wasm } = await import("@prisma/client/runtime/query_compiler_fast_bg.postgresql.wasm-base64.mjs");
+    return await decodeBase64AsWasm(wasm);
+  },
+  importName: "./query_compiler_fast_bg.js"
+};
+function getPrismaClientClass() {
+  return runtime.getPrismaClient(config2);
+}
+
+// src/generated/prisma/internal/prismaNamespace.ts
+import * as runtime2 from "@prisma/client/runtime/client";
+var getExtensionContext = runtime2.Extensions.getExtensionContext;
+var NullTypes2 = {
+  DbNull: runtime2.NullTypes.DbNull,
+  JsonNull: runtime2.NullTypes.JsonNull,
+  AnyNull: runtime2.NullTypes.AnyNull
+};
+var TransactionIsolationLevel = runtime2.makeStrictEnum({
+  ReadUncommitted: "ReadUncommitted",
+  ReadCommitted: "ReadCommitted",
+  RepeatableRead: "RepeatableRead",
+  Serializable: "Serializable"
+});
+var defineExtension = runtime2.Extensions.defineExtension;
+
+// src/generated/prisma/client.ts
+globalThis["__dirname"] = path.dirname(fileURLToPath(import.meta.url));
+var PrismaClient = getPrismaClientClass();
+
+// src/lib/prisma.ts
+var connectionString = `${process.env.DATABASE_URL}`;
+var adapter = new PrismaPg({ connectionString });
+var prisma = new PrismaClient({ adapter });
+
+// src/lib/sendEmail.ts
+import nodemailer from "nodemailer";
+async function sendEmail({ to, subject, text, html }) {
+  const transporter = nodemailer.createTransport({
+    host: config.smtp_host,
+    port: Number(config.smtp_port) || 587,
+    secure: config.smtp_secure,
+    auth: {
+      user: config.smtp_user,
+      pass: config.smtp_pass
+    }
+  });
+  const info = await transporter.sendMail({
+    from: `"Skill Bridge" <${config.smtp_from}>`,
+    to,
+    subject,
+    text,
+    html
+  });
+  console.log("Email sent: %s", info.messageId);
+}
+
+// src/lib/auth.ts
+var auth = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: "postgresql"
+  }),
+  advanced: {
+    cookiePrefix: "skill_bridge"
+  },
+  trustedOrigins: [config.app_url, config.better_url],
+  emailAndPassword: {
+    enabled: true,
+    autoSignIn: false,
+    requireEmailVerification: true,
+    minPasswordLength: 6
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url, token }, request) => {
+      const verificationUrl = `${config.app_url}/verify?token=${token}`;
+      const html = `
+                      <div style="font-family: Arial, sans-serif; text-align: center;">
+                        <h2>Welcome to Our App, ${user?.name}!</h2>
+                        <p>Please verify your email address to continue.</p>
+                        <a href="${verificationUrl}"
+                          style="display: inline-block; padding: 10px 20px; margin: 20px 0; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
+                          Verify Email
+                        </a>
+                        <p>If you did not create an account, you can ignore this email.</p>
+                      </div>
+                    `;
+      if (user?.email) {
+        await sendEmail({
+          to: user.email,
+          subject: "Verify your email address for SkillBridge",
+          text: `Click the link to verify your email: ${verificationUrl}`,
+          html
+        });
+      }
+    }
+  },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: UsersRole.student
+      },
+      is_banned: {
+        type: "string",
+        required: false,
+        defaultValue: false
+      }
+    }
+  }
+});
+
+// src/api/auth/app.service.ts
+var registerUser = async ({
+  name,
+  email,
+  password,
+  role
+}) => {
+  return auth.api.signUpEmail({
+    body: {
+      name,
+      email,
+      password,
+      role
+    },
+    asResponse: true
+  });
+};
+var loginUser = async ({ password, email }) => {
+  return auth.api.signInEmail({
+    body: {
+      email,
+      password
+    },
+    asResponse: true
+  });
+};
+var userDetails = async (id) => {
+  return await prisma.user.findUnique({
+    where: { id },
+    select: {
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true
+    }
+  });
+};
+var AuthServices = {
+  registerUser,
+  loginUser,
+  userDetails
+};
+
+// src/api/auth/auth.controller.ts
+var registerUser2 = async (req, res) => {
+  try {
+    const { name, email, password, role = UsersRole.student } = req.body;
+    if (role === UsersRole.admin) {
+      return res.status(403).json({ success: false, message: "Can not create admin role" });
+    }
+    const result = await AuthServices.registerUser({
+      name,
+      email,
+      password,
+      role
+    });
+    if (!result) {
+      return res.status(400).json({
+        success: false,
+        message: "Failed to create user"
+      });
+    }
+    const setCookieHeader = result.headers.get("set-cookie");
+    if (setCookieHeader) {
+      res.setHeader("Set-Cookie", setCookieHeader);
+    }
+    const data = await result.json();
+    return res.status(result.status).json({
+      success: true,
+      message: "User registered successfully. Please verify your email.",
+      data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to register user"
+    });
+  }
+};
+var loginUser2 = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
+    const result = await AuthServices.loginUser({ password, email });
+    if (!result) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
+    }
+    const setCookieHeader = result.headers.get("set-cookie");
+    if (setCookieHeader) {
+      res.setHeader("Set-Cookie", setCookieHeader);
+    }
+    const data = await result.json();
+    return res.status(result.status).json({
+      success: true,
+      message: "Login successful",
+      data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to login"
+    });
+  }
+};
+var userDetails2 = async (req, res) => {
+  try {
+    const result = await AuthServices.userDetails(req.user?.id);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to login"
+    });
+  }
+};
+var AuthControllers = {
+  registerUser: registerUser2,
+  loginUser: loginUser2,
+  userDetails: userDetails2
+};
+
+// src/middleware/auth.ts
+var auth2 = (...roles) => {
+  return async (req, res, next) => {
+    try {
+      const session = await auth.api.getSession({
+        headers: req.headers
+      });
+      if (!session) {
+        return res.status(401).json({ message: "Unauthorized: No valid session found" });
+      }
+      if (!session.user) {
+        return res.status(401).json({ message: "Unauthorized: User not found" });
+      }
+      if (!session.user.role) {
+        return res.status(403).json({
+          message: "Forbidden: You do not have permission to access this resource"
+        });
+      }
+      if (!roles.includes(session.user.role)) {
+        return res.status(403).json({
+          message: "Forbidden: You do not have permission to access this resource"
+        });
+      }
+      req.user = session.user;
+      next();
+    } catch (error) {
+      console.error(error);
+      return res.status(401).json({ message: "Authentication failed" });
+    }
+  };
+};
+
+// src/api/auth/auth.routes.ts
+var router = Router();
+router.post("/register", AuthControllers.registerUser);
+router.post("/login", AuthControllers.loginUser);
+router.get(
+  "/me",
+  auth2(UsersRole.admin, UsersRole.student, UsersRole.teacher),
+  AuthControllers.userDetails
+);
+
+// src/api/tutors/tutors.route.ts
+import { Router as Router2 } from "express";
+
+// src/lib/pagination.ts
+var calculatePagination = (options) => {
+  const page = Number(options.page) || 1;
+  const limit = Number(options.limit) || 10;
+  const skip = (page - 1) * limit;
+  return {
+    page,
+    limit,
+    skip
+  };
+};
+var buildPaginationResponse = (data, total, page, limit) => {
+  const totalPages = Math.ceil(total / limit);
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    }
+  };
+};
+var parseSortOptions = (sortBy, sortOrder, allowedFields = [], defaultSortBy = "createdAt", defaultSortOrder = "desc") => {
+  const validatedSortBy = sortBy && allowedFields.includes(sortBy) ? sortBy : defaultSortBy;
+  const validatedSortOrder = sortOrder === "asc" || sortOrder === "desc" ? sortOrder : defaultSortOrder;
+  return {
+    sortBy: validatedSortBy,
+    sortOrder: validatedSortOrder
+  };
+};
+var buildPrismaOrderBy = (sortBy, sortOrder) => {
+  if (sortBy.includes(".")) {
+    const [relation, field] = sortBy.split(".");
+    return {
+      [relation]: {
+        [field]: sortOrder
+      }
+    };
+  }
+  return {
+    [sortBy]: sortOrder
+  };
+};
+
+// src/api/tutors/tutors.service.ts
+var getTutors = async (query) => {
+  const { search, sortBy, sortOrder, category, featured, page, limit } = query;
+  const {
+    page: currentPage,
+    limit: pageLimit,
+    skip
+  } = calculatePagination({
+    page: page ? Number(page) : 1,
+    limit: limit ? Number(limit) : 10
+  });
+  const sortOptions = parseSortOptions(
+    sortBy,
+    sortOrder,
+    ["name", "email", "createdAt"],
+    "createdAt",
+    "desc"
+  );
+  const where = {
+    role: "teacher",
+    tutorProfiles: {
+      some: {}
+    }
+  };
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } }
+    ];
+  }
+  if (category) {
+    where.tutorProfiles = {
+      some: {
+        category_id: category
+      }
+    };
+  }
+  if (featured !== void 0) {
+    const isFeatured = featured === "true";
+    where.tutorProfiles = {
+      some: {
+        ...where.tutorProfiles?.some || {},
+        featured: isFeatured
+      }
+    };
+  }
+  let orderBy = [];
+  if (featured === void 0) {
+    orderBy.push({
+      tutorProfiles: {
+        _count: "desc"
+      }
+    });
+  }
+  if (sortOptions.sortBy === "name" || sortOptions.sortBy === "email") {
+    orderBy.push({
+      [sortOptions.sortBy]: sortOptions.sortOrder
+    });
+  } else {
+    orderBy.push(buildPrismaOrderBy(sortOptions.sortBy, sortOptions.sortOrder));
+  }
+  const total = await prisma.user.count({ where });
+  const tutors = await prisma.user.findMany({
+    where,
+    skip,
+    take: pageLimit,
+    orderBy,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      createdAt: true,
+      tutorProfiles: {
+        orderBy: featured === void 0 ? { featured: "desc" } : void 0,
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      }
+    }
+  });
+  let sortedTutors = tutors;
+  if (featured === void 0) {
+    sortedTutors = tutors.sort((a, b) => {
+      const aHasFeatured = a.tutorProfiles.some((p) => p.featured);
+      const bHasFeatured = b.tutorProfiles.some((p) => p.featured);
+      if (aHasFeatured && !bHasFeatured) return -1;
+      if (!aHasFeatured && bHasFeatured) return 1;
+      return 0;
+    });
+  }
+  return buildPaginationResponse(sortedTutors, total, currentPage, pageLimit);
+};
+var getATutor = async (tutorId) => {
+  const tutor = await prisma.user.findUnique({
+    where: {
+      id: tutorId,
+      role: "teacher"
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      createdAt: true,
+      tutorProfiles: {
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        },
+        orderBy: {
+          featured: "desc"
+        }
+      }
+    }
+  });
+  if (!tutor || tutor.tutorProfiles.length === 0) {
+    return null;
+  }
+  const [mainProfile, ...otherProfiles] = tutor.tutorProfiles;
+  return {
+    id: tutor.id,
+    name: tutor.name,
+    email: tutor.email,
+    image: tutor.image,
+    createdAt: tutor.createdAt,
+    mainProfile: mainProfile || null,
+    otherProfiles: otherProfiles || []
+  };
+};
+var TutorsServices = {
+  getTutors,
+  getATutor
+};
+
+// src/api/tutors/tutors.controller.ts
+var getTutors2 = async (req, res) => {
+  try {
+    const query = {
+      search: req.query.search,
+      sortBy: req.query.sortBy,
+      sortOrder: req.query.sortOrder,
+      category: req.query.category,
+      featured: req.query.featured,
+      page: req.query.page,
+      limit: req.query.limit
+    };
+    const result = await TutorsServices.getTutors(query);
+    res.status(200).json({
+      success: true,
+      message: "Tutors retrieved successfully",
+      ...result
+    });
+  } catch (error) {
+    console.error("Error fetching tutors:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch tutors",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+var getATutor2 = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Valid tutor ID is required"
+      });
+    }
+    const tutor = await TutorsServices.getATutor(id);
+    if (!tutor) {
+      return res.status(404).json({
+        success: false,
+        message: "Tutor not found or has no tutor profiles"
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Tutor details retrieved successfully",
+      data: tutor
+    });
+  } catch (error) {
+    console.error("Error fetching tutor:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch tutor details",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+var TutorsControllers = {
+  getTutors: getTutors2,
+  getATutor: getATutor2
+};
+
+// src/api/tutors/tutors.route.ts
+var router2 = Router2();
+router2.get("/", TutorsControllers.getTutors);
+router2.get("/:id", TutorsControllers.getATutor);
+
+// src/api/categories/categories.routes.ts
+import { Router as Router3 } from "express";
+
+// src/api/categories/categories.service.ts
+var getAllCategories = async () => {
+  const categories = await prisma.category.findMany({
+    orderBy: {
+      name: "asc"
+    }
+  });
+  return categories;
+};
+var createCategory = async (name) => {
+  const category = await prisma.category.create({
+    data: {
+      name
+    }
+  });
+  return category;
+};
+var deleteCategory = async (id) => {
+  const category = await prisma.category.delete({
+    where: { id }
+  });
+  return category;
+};
+var CategoriesService = {
+  getAllCategories,
+  createCategory,
+  deleteCategory
+};
+
+// src/api/categories/categories.controller.ts
+var getAllCategories2 = async (req, res) => {
+  try {
+    const categories = await CategoriesService.getAllCategories();
+    res.status(200).json({
+      success: true,
+      message: "Categories retrieved successfully",
+      data: categories
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve categories",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+var createCategory2 = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: "Category name is required"
+      });
+    }
+    const category = await CategoriesService.createCategory(name);
+    res.status(201).json({
+      success: true,
+      message: "Category created successfully",
+      data: category
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to create category",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+var deleteCategory2 = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Category ID is required"
+      });
+    }
+    const category = await CategoriesService.deleteCategory(id);
+    res.status(200).json({
+      success: true,
+      message: "Category deleted successfully",
+      data: category
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete category",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+var CategoriesController = {
+  getAllCategories: getAllCategories2,
+  createCategory: createCategory2,
+  deleteCategory: deleteCategory2
+};
+
+// src/api/categories/categories.routes.ts
+var router3 = Router3();
+router3.get("/", CategoriesController.getAllCategories);
+router3.post("/", auth2(UsersRole.admin), CategoriesController.createCategory);
+router3.delete(
+  "/:id",
+  auth2(UsersRole.admin),
+  CategoriesController.deleteCategory
+);
+
+// src/api/bookings/bookings.route.ts
+import { Router as Router4 } from "express";
+
+// src/api/bookings/bookings.service.ts
+var createBooking = async (data) => {
+  const { student_id, tutor_id, start_time, end_time, date } = data;
+  const tutorProfile = await prisma.tutorProfile.findUnique({
+    where: { id: tutor_id },
+    select: { price_per_hour: true }
+  });
+  if (!tutorProfile) {
+    throw new Error("Tutor not found");
+  }
+  const startHour = (/* @__PURE__ */ new Date(`1970-01-01T${start_time}`)).getHours();
+  const endHour = (/* @__PURE__ */ new Date(`1970-01-01T${end_time}`)).getHours();
+  const hours = endHour - startHour;
+  const total_price = hours * tutorProfile.price_per_hour;
+  const id = `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const booking = await prisma.booking.create({
+    data: {
+      id,
+      student_id,
+      tutor_id,
+      start_time: /* @__PURE__ */ new Date(`1970-01-01T${start_time}`),
+      end_time: /* @__PURE__ */ new Date(`1970-01-01T${end_time}`),
+      date: /* @__PURE__ */ new Date(`1970-01-01T${date}`),
+      total_price,
+      status: "confirm"
+    },
+    include: {
+      bookingTutor: {
+        include: {
+          userToTutor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true
+            }
+          },
+          category: true
+        }
+      },
+      bookingStudent: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true
+        }
+      }
+    }
+  });
+  return booking;
+};
+var getUserBookings = async (userId, userRole, query) => {
+  const { page, limit, status } = query;
+  const {
+    page: currentPage,
+    limit: pageLimit,
+    skip
+  } = calculatePagination({
+    page: page ? Number(page) : 1,
+    limit: limit ? Number(limit) : 10
+  });
+  const where = {};
+  if (userRole === "student") {
+    where.student_id = userId;
+  } else if (userRole === "teacher") {
+    where.bookingTutor = {
+      user_id: userId
+    };
+  }
+  if (status) {
+    where.status = status;
+  }
+  const [bookings, total] = await prisma.$transaction([
+    prisma.booking.findMany({
+      where,
+      skip,
+      take: pageLimit,
+      orderBy: {
+        date: "desc"
+      },
+      include: {
+        bookingTutor: {
+          include: {
+            userToTutor: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true
+              }
+            },
+            category: true
+          }
+        },
+        bookingStudent: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true
+          }
+        },
+        ratings: true
+      }
+    }),
+    prisma.booking.count({ where })
+  ]);
+  return buildPaginationResponse(bookings, total, currentPage, pageLimit);
+};
+var getBookingDetails = async (bookingId, userId, userRole) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      bookingTutor: {
+        include: {
+          userToTutor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true
+            }
+          },
+          category: true,
+          availables: true
+        }
+      },
+      bookingStudent: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true
+        }
+      },
+      ratings: true
+    }
+  });
+  if (!booking) {
+    return null;
+  }
+  if (userRole === "student" && booking.student_id !== userId) {
+    throw new Error("You don't have permission to view this booking");
+  }
+  if (userRole === "teacher" && booking.bookingTutor.user_id !== userId) {
+    throw new Error("You don't have permission to view this booking");
+  }
+  return booking;
+};
+var BookingsService = {
+  createBooking,
+  getUserBookings,
+  getBookingDetails
+};
+
+// src/api/bookings/bookings.controller.ts
+var createBooking2 = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User not found"
+      });
+    }
+    const { tutor_id, start_time, end_time, date } = req.body;
+    if (!tutor_id || !start_time || !end_time || !date) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required: tutor_id, start_time, end_time, date"
+      });
+    }
+    const booking = await BookingsService.createBooking({
+      student_id: userId,
+      tutor_id,
+      start_time,
+      end_time,
+      date
+    });
+    res.status(201).json({
+      success: true,
+      message: "Booking created successfully",
+      data: booking
+    });
+  } catch (error) {
+    console.error("Error creating booking:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create booking",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+var getUserBookings2 = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User not found"
+      });
+    }
+    const query = {
+      page: req.query.page,
+      limit: req.query.limit,
+      status: req.query.status
+    };
+    const result = await BookingsService.getUserBookings(
+      userId,
+      userRole,
+      query
+    );
+    res.status(200).json({
+      success: true,
+      message: "Bookings retrieved successfully",
+      ...result
+    });
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch bookings",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+var getBookingDetails2 = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const { id } = req.params;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User not found"
+      });
+    }
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Valid booking ID is required"
+      });
+    }
+    const booking = await BookingsService.getBookingDetails(
+      id,
+      userId,
+      userRole
+    );
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found"
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Booking details retrieved successfully",
+      data: booking
+    });
+  } catch (error) {
+    console.error("Error fetching booking details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch booking details",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+var BookingsController = {
+  createBooking: createBooking2,
+  getUserBookings: getUserBookings2,
+  getBookingDetails: getBookingDetails2
+};
+
+// src/api/bookings/bookings.route.ts
+var router4 = Router4();
+router4.post("/", auth2(UsersRole.student), BookingsController.createBooking);
+router4.get(
+  "/",
+  auth2(UsersRole.student, UsersRole.admin),
+  BookingsController.getUserBookings
+);
+router4.get(
+  "/:id",
+  auth2(UsersRole.student, UsersRole.teacher, UsersRole.admin),
+  BookingsController.getBookingDetails
+);
+
+// src/api/tutor/tutor.route.ts
+import { Router as Router5 } from "express";
+
+// src/api/tutor/tutor.service.ts
+var TutorService = class {
+  static async updateProfile(userId, data) {
+    try {
+      const tutorProfile = await prisma.tutorProfile.findFirst({
+        where: { user_id: userId }
+      });
+      if (!tutorProfile) {
+        const error = new Error("Tutor profile not found for this user");
+        error.statusCode = 404;
+        throw error;
+      }
+      if (data.category_id) {
+        const category = await prisma.category.findUnique({
+          where: { id: data.category_id }
+        });
+        if (!category) {
+          const error = new Error("Category not found");
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+      const updateData = {};
+      if (data.description !== void 0)
+        updateData.description = data.description;
+      if (data.price_per_hour !== void 0)
+        updateData.price_per_hour = data.price_per_hour;
+      if (data.category_id !== void 0)
+        updateData.category_id = data.category_id;
+      const updatedProfile = await prisma.tutorProfile.update({
+        where: { id: tutorProfile.id },
+        data: updateData,
+        include: {
+          category: true,
+          userToTutor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true
+            }
+          }
+        }
+      });
+      return updatedProfile;
+    } catch (error) {
+      console.error("Error in updateProfile service:", error);
+      throw error;
+    }
+  }
+  static async updateAvailability(userId, availability) {
+    try {
+      const tutorProfile = await prisma.tutorProfile.findFirst({
+        where: { user_id: userId }
+      });
+      if (!tutorProfile) {
+        const error = new Error("Tutor profile not found for this user");
+        error.statusCode = 404;
+        throw error;
+      }
+      await prisma.available.deleteMany({
+        where: { tutor_id: tutorProfile.id }
+      });
+      const availabilityData = availability.map((avail) => ({
+        tutor_id: tutorProfile.id,
+        day: avail.day,
+        start_time: /* @__PURE__ */ new Date(`1970-01-01T${avail.start_time}`),
+        end_time: /* @__PURE__ */ new Date(`1970-01-01T${avail.end_time}`)
+      }));
+      const createdAvailability = await prisma.available.createMany({
+        data: availabilityData
+      });
+      const updatedAvailability = await prisma.available.findMany({
+        where: { tutor_id: tutorProfile.id }
+      });
+      return updatedAvailability;
+    } catch (error) {
+      console.error("Error in updateAvailability service:", error);
+      throw error;
+    }
+  }
+};
+
+// src/api/tutor/tutor.controller.ts
+var TutorController = class {
+  static async updateProfile(req, res) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User not authenticated"
+        });
+      }
+      const { description, price_per_hour, category_id } = req.body;
+      if (!description && !price_per_hour && !category_id) {
+        return res.status(400).json({
+          success: false,
+          message: "At least one field is required to update the profile"
+        });
+      }
+      const updatedProfile = await TutorService.updateProfile(userId, {
+        description,
+        price_per_hour,
+        category_id
+      });
+      return res.status(200).json({
+        success: true,
+        message: "Profile updated successfully",
+        data: updatedProfile
+      });
+    } catch (error) {
+      console.error("Error updating tutor profile:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to update profile"
+      });
+    }
+  }
+  static async updateAvailability(req, res) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User not authenticated"
+        });
+      }
+      const { availability } = req.body;
+      if (!Array.isArray(availability) || availability.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Availability must be a non-empty array"
+        });
+      }
+      for (const avail of availability) {
+        if (!avail.day || !avail.start_time || !avail.end_time) {
+          return res.status(400).json({
+            success: false,
+            message: "Each availability entry must have day, start_time, and end_time"
+          });
+        }
+      }
+      const updatedAvailability = await TutorService.updateAvailability(
+        userId,
+        availability
+      );
+      return res.status(200).json({
+        success: true,
+        message: "Availability updated successfully",
+        data: updatedAvailability
+      });
+    } catch (error) {
+      console.error("Error updating availability:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to update availability"
+      });
+    }
+  }
+};
+
+// src/api/tutor/tutor.route.ts
+var router5 = Router5();
+router5.put("/profile", auth2(UsersRole.teacher), TutorController.updateProfile);
+router5.put(
+  "/availability",
+  auth2(UsersRole.teacher),
+  TutorController.updateAvailability
+);
+
+// src/api/reviews/reviews.routes.ts
+import { Router as Router6 } from "express";
+
+// src/api/reviews/reviews.service.ts
+var ReviewsService = class {
+  static async createReview(studentId, data) {
+    try {
+      const booking = await prisma.booking.findUnique({
+        where: { id: data.booking_id },
+        include: {
+          ratings: true
+        }
+      });
+      if (!booking) {
+        const error = new Error("Booking not found");
+        error.statusCode = 404;
+        throw error;
+      }
+      if (booking.student_id !== studentId) {
+        const error = new Error("You can only review your own bookings");
+        error.statusCode = 403;
+        throw error;
+      }
+      if (booking.status !== "completed") {
+        const error = new Error("You can only review completed bookings");
+        error.statusCode = 400;
+        throw error;
+      }
+      if (booking.ratings) {
+        const error = new Error(
+          "A review already exists for this booking"
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+      const createdReview = await prisma.rating.create({
+        data: {
+          booking_id: data.booking_id,
+          rating: data.rating,
+          review: data.review
+        },
+        include: {
+          bookingRating: {
+            include: {
+              bookingTutor: {
+                include: {
+                  userToTutor: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      image: true
+                    }
+                  },
+                  category: true
+                }
+              }
+            }
+          }
+        }
+      });
+      return createdReview;
+    } catch (error) {
+      console.error("Error in createReview service:", error);
+      throw error;
+    }
+  }
+};
+
+// src/api/reviews/reviews.controller.ts
+var ReviewsController = class {
+  static async createReview(req, res) {
+    try {
+      const studentId = req.user?.id;
+      if (!studentId) {
+        return res.status(401).json({
+          success: false,
+          message: "User not authenticated"
+        });
+      }
+      const { booking_id, rating, review } = req.body;
+      if (!booking_id || !rating) {
+        return res.status(400).json({
+          success: false,
+          message: "booking_id and rating are required"
+        });
+      }
+      if (typeof rating !== "number" || rating < 1 || rating > 5) {
+        return res.status(400).json({
+          success: false,
+          message: "Rating must be a number between 1 and 5"
+        });
+      }
+      const createdReview = await ReviewsService.createReview(studentId, {
+        booking_id,
+        rating,
+        review
+      });
+      return res.status(201).json({
+        success: true,
+        message: "Review created successfully",
+        data: createdReview
+      });
+    } catch (error) {
+      console.error("Error creating review:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to create review"
+      });
+    }
+  }
+};
+
+// src/api/reviews/reviews.routes.ts
+var router6 = Router6();
+router6.post("/", auth2(UsersRole.student), ReviewsController.createReview);
+
+// src/api/admin/admin.routes.ts
+import { Router as Router7 } from "express";
+
+// src/api/admin/admin.service.ts
+var AdminService = class {
+  static async getAllUsers() {
+    try {
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          emailVerified: true,
+          image: true,
+          role: true,
+          is_banned: true,
+          createdAt: true,
+          updatedAt: true,
+          tutorProfiles: {
+            select: {
+              id: true,
+              category_id: true,
+              description: true,
+              price_per_hour: true,
+              featured: true
+            }
+          },
+          bookings: {
+            select: {
+              id: true,
+              status: true,
+              total_price: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
+      return users;
+    } catch (error) {
+      console.error("Error in getAllUsers service:", error);
+      throw error;
+    }
+  }
+  static async updateUserStatus(userId, data) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+      if (!user) {
+        const error = new Error("User not found");
+        error.statusCode = 404;
+        throw error;
+      }
+      const updateData = {};
+      if (data.is_banned !== void 0) updateData.is_banned = data.is_banned;
+      if (data.role !== void 0) updateData.role = data.role;
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          emailVerified: true,
+          image: true,
+          role: true,
+          is_banned: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+      return updatedUser;
+    } catch (error) {
+      console.error("Error in updateUserStatus service:", error);
+      throw error;
+    }
+  }
+};
+
+// src/api/admin/admin.controller.ts
+var AdminController = class {
+  /**
+   * Get all users in the system
+   * @route GET /api/admin/users
+   * @access Private (Admin only)
+   */
+  static async getAllUsers(req, res) {
+    try {
+      const users = await AdminService.getAllUsers();
+      return res.status(200).json({
+        success: true,
+        message: "Users retrieved successfully",
+        data: users
+      });
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to fetch users"
+      });
+    }
+  }
+  /**
+   * Update user status (ban/unban) or role
+   * @route PATCH /api/admin/users/:id
+   * @access Private (Admin only)
+   */
+  static async updateUserStatus(req, res) {
+    try {
+      const id = req.params.id;
+      const { is_banned, role } = req.body;
+      if (is_banned === void 0 && !role) {
+        return res.status(400).json({
+          success: false,
+          message: "At least one field (is_banned or role) is required"
+        });
+      }
+      if (role && !["student", "teacher", "admin"].includes(role)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid role. Must be student, teacher, or admin"
+        });
+      }
+      const updatedUser = await AdminService.updateUserStatus(id, {
+        is_banned,
+        role
+      });
+      return res.status(200).json({
+        success: true,
+        message: "User status updated successfully",
+        data: updatedUser
+      });
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || "Failed to update user status"
+      });
+    }
+  }
+};
+
+// src/api/admin/admin.routes.ts
+var router7 = Router7();
+router7.get("/users", auth2(UsersRole.admin), AdminController.getAllUsers);
+router7.patch(
+  "/users/:id",
+  auth2(UsersRole.admin),
+  AdminController.updateUserStatus
+);
+
+// src/api/api.routes.ts
+var router8 = Router8();
+router8.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+router8.use("/auth", router);
+router8.use("/tutors", router2);
+router8.use("/tutor", router5);
+router8.use("/categories", router3);
+router8.use("/bookings", router4);
+router8.use("/reviews", router6);
+router8.use("/admin", router7);
+
+// src/app.ts
+import cors from "cors";
+
+// src/middleware/errorHandler.ts
+var errorHandler = (err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  const status = err.status || "error";
+  res.status(statusCode).json({
+    status,
+    message: err.message || "Internal Server Error",
+    ...process.env.NODE_ENV === "development" && { stack: err.stack }
+  });
+};
+var notFoundHandler = (req, res, next) => {
+  res.status(404).json({
+    status: "error",
+    message: `Route ${req.originalUrl} not found`
+  });
+};
+
+// src/app.ts
+var app = express();
+app.use(
+  cors({
+    origin: config.app_url,
+    credentials: true
+  })
+);
+app.use(express.json());
+app.use("/api", router8);
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "The skill bridge is running ok" });
+});
+app.use(notFoundHandler);
+app.use(errorHandler);
+var app_default = app;
+export {
+  app_default as default
+};

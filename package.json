@@ -1,15 +1,15 @@
 {
-  "name": "backend",
+  "name": "skillbridge",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "api/app.mjs",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx tsx watch src/server.ts",
-    "build": "prisma generate && tsc",
-    "start": "node dist/server.js",
-    "vercel-build": "prisma generate && tsc",
+    "build": "prisma generate && tsup",
+    "start": "node api/app.mjs",
+    "vercel-build": "prisma generate && tsup",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
@@ -29,6 +29,7 @@
     "@types/nodemailer": "^7.0.9",
     "@types/pg": "^8.16.0",
     "prisma": "^7.3.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
