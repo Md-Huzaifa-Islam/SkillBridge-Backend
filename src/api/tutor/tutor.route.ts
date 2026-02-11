@@ -2,22 +2,26 @@ import { Router } from "express";
 import { TutorController } from "./tutor.controller";
 import { auth } from "../../middleware/auth";
 import { UsersRole } from "../../generated/prisma/enums";
+import { validate } from "../../lib/asyncHandler";
+import {
+  updateTutorProfileSchema,
+  updateAvailabilitySchema,
+} from "../../lib/validation";
 
 const router = Router();
 
-// Get tutor profile - only accessible by teacher role
 router.get("/profile", auth(UsersRole.teacher), TutorController.getProfile);
-
-// Update tutor profile - only accessible by teacher role
-router.put("/profile", auth(UsersRole.teacher), TutorController.updateProfile);
-
-// Get tutor sessions - only accessible by teacher role
+router.put(
+  "/profile",
+  auth(UsersRole.teacher),
+  validate(updateTutorProfileSchema),
+  TutorController.updateProfile,
+);
 router.get("/sessions", auth(UsersRole.teacher), TutorController.getSessions);
-
-// Update availability - only accessible by teacher role
 router.put(
   "/availability",
   auth(UsersRole.teacher),
+  validate(updateAvailabilitySchema),
   TutorController.updateAvailability,
 );
 

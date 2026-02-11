@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { WeekDay } from "../../generated/prisma/enums";
+import { AppError } from "../../lib/AppError";
 
 interface UpdateProfileData {
   description?: string;
@@ -41,7 +42,6 @@ export class TutorService {
         return null;
       }
 
-      // Calculate average rating
       const ratings = tutorProfile.bookings
         .filter((b) => b.ratings)
         .map((b) => b.ratings!.rating);
@@ -67,8 +67,7 @@ export class TutorService {
       });
 
       if (!tutorProfile) {
-        const error: any = new Error("Tutor profile not found");
-        error.statusCode = 404;
+        const error: any = new AppError("Tutor profile not found", 404);
         throw error;
       }
 
@@ -112,14 +111,11 @@ export class TutorService {
 
   static async updateProfile(userId: string, data: UpdateProfileData) {
     try {
-      // First, find the tutor profile for this user
       let tutorProfile = await prisma.tutorProfile.findFirst({
         where: { user_id: userId },
       });
 
-      // If no profile exists, create one
       if (!tutorProfile) {
-        // Validate required fields for new profile
         if (!data.category_id || !data.price_per_hour) {
           const error: any = new Error(
             "category_id and price_per_hour are required to create a tutor profile",
@@ -128,7 +124,6 @@ export class TutorService {
           throw error;
         }
 
-        // Verify category exists
         const category = await prisma.category.findUnique({
           where: { id: data.category_id },
         });
@@ -139,7 +134,6 @@ export class TutorService {
           throw error;
         }
 
-        // Create new profile
         tutorProfile = await prisma.tutorProfile.create({
           data: {
             user_id: userId,
@@ -163,7 +157,6 @@ export class TutorService {
         return tutorProfile;
       }
 
-      // If category_id is provided, verify it exists
       if (data.category_id) {
         const category = await prisma.category.findUnique({
           where: { id: data.category_id },
@@ -176,7 +169,6 @@ export class TutorService {
         }
       }
 
-      // Update the tutor profile
       const updateData: any = {};
       if (data.description !== undefined)
         updateData.description = data.description;
@@ -213,7 +205,6 @@ export class TutorService {
     availability: AvailabilityEntry[],
   ) {
     try {
-      // First, find the tutor profile for this user
       const tutorProfile = await prisma.tutorProfile.findFirst({
         where: { user_id: userId },
       });
@@ -239,7 +230,6 @@ export class TutorService {
         data: availabilityData,
       });
 
-      // Fetch and return the updated availability
       const updatedAvailability = await prisma.available.findMany({
         where: { tutor_id: tutorProfile.id },
       });

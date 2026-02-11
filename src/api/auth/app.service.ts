@@ -42,11 +42,21 @@ const userDetails = async (id: string) => {
   return await prisma.user.findUnique({
     where: { id },
     select: {
+      id: true,
       name: true,
       email: true,
       role: true,
+      is_banned: true,
+      emailVerified: true,
       createdAt: true,
     },
+  });
+};
+
+const logoutUser = async (headers: Headers) => {
+  return auth.api.signOut({
+    headers,
+    asResponse: true,
   });
 };
 
@@ -55,4 +65,5 @@ export const AuthServices = {
   loginUser,
   verifyEmail,
   userDetails,
+  logoutUser,
 };

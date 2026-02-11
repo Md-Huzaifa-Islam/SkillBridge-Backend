@@ -11,7 +11,6 @@ import { GetTutorsQuery, SingleTutorDetails } from "../../types/tutors";
 const getTutors = async (query: GetTutorsQuery) => {
   const { search, sortBy, sortOrder, category, featured, page, limit } = query;
 
-  // Calculate pagination
   const {
     page: currentPage,
     limit: pageLimit,
@@ -21,7 +20,6 @@ const getTutors = async (query: GetTutorsQuery) => {
     limit: limit ? Number(limit) : 10,
   });
 
-  // Parse sort options
   const sortOptions = parseSortOptions(
     sortBy,
     sortOrder,
@@ -30,7 +28,6 @@ const getTutors = async (query: GetTutorsQuery) => {
     "desc",
   );
 
-  // Build where clause
   const where: Prisma.UserWhereInput = {
     role: "teacher",
     tutorProfiles: {
@@ -38,7 +35,6 @@ const getTutors = async (query: GetTutorsQuery) => {
     },
   };
 
-  // Add search filter
   if (search) {
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },
@@ -46,7 +42,6 @@ const getTutors = async (query: GetTutorsQuery) => {
     ];
   }
 
-  // Add category filter
   if (category) {
     where.tutorProfiles = {
       some: {
@@ -55,7 +50,6 @@ const getTutors = async (query: GetTutorsQuery) => {
     };
   }
 
-  // Add featured filter - if featured is explicitly provided
   if (featured !== undefined) {
     const isFeatured = featured === "true";
     where.tutorProfiles = {
@@ -66,7 +60,6 @@ const getTutors = async (query: GetTutorsQuery) => {
     };
   }
 
-  // Build orderBy with featured priority if not explicitly filtered
   let orderBy: any[] = [];
 
   if (featured === undefined) {
@@ -77,7 +70,6 @@ const getTutors = async (query: GetTutorsQuery) => {
     });
   }
 
-  // Add the main sort field
   if (sortOptions.sortBy === "name" || sortOptions.sortBy === "email") {
     orderBy.push({
       [sortOptions.sortBy]: sortOptions.sortOrder,
@@ -86,10 +78,8 @@ const getTutors = async (query: GetTutorsQuery) => {
     orderBy.push(buildPrismaOrderBy(sortOptions.sortBy, sortOptions.sortOrder));
   }
 
-  // Get total count
   const total = await prisma.user.count({ where });
 
-  // Fetch tutors with their profiles
   const tutors = await prisma.user.findMany({
     where,
     skip,
@@ -115,7 +105,6 @@ const getTutors = async (query: GetTutorsQuery) => {
     },
   });
 
-  // If featured is not specified, sort tutors by whether they have featured profiles
   let sortedTutors = tutors;
   if (featured === undefined) {
     sortedTutors = tutors.sort((a, b) => {
@@ -164,7 +153,6 @@ const getATutor = async (
     return null;
   }
 
-  // Set the first profile (highest featured) as main profile
   const [mainProfile, ...otherProfiles] = tutor.tutorProfiles;
 
   return {

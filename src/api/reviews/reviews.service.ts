@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { AppError } from "../../lib/AppError";
 
 interface CreateReviewData {
   booking_id: string;
@@ -17,29 +18,19 @@ export class ReviewsService {
       });
 
       if (!booking) {
-        const error: any = new Error("Booking not found");
-        error.statusCode = 404;
-        throw error;
+        throw new AppError("Booking not found", 404);
       }
 
       if (booking.student_id !== studentId) {
-        const error: any = new Error("You can only review your own bookings");
-        error.statusCode = 403;
-        throw error;
+        throw new AppError("You can only review your own bookings", 403);
       }
 
       if (booking.status !== "completed") {
-        const error: any = new Error("You can only review completed bookings");
-        error.statusCode = 400;
-        throw error;
+        throw new AppError("You can only review completed bookings", 400);
       }
 
       if (booking.ratings) {
-        const error: any = new Error(
-          "A review already exists for this booking",
-        );
-        error.statusCode = 409;
-        throw error;
+        throw new AppError("A review already exists for this booking", 409);
       }
 
       const createdReview = await prisma.rating.create({

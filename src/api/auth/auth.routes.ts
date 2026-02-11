@@ -2,19 +2,19 @@ import { Router } from "express";
 import { AuthControllers } from "./auth.controller";
 import { auth } from "../../middleware/auth";
 import { UsersRole } from "../../generated/prisma/enums";
+import { validate } from "../../lib/asyncHandler";
+import { registerSchema, loginSchema } from "../../lib/validation";
 
 const router = Router();
 
-// register a user
-router.post("/register", AuthControllers.registerUser);
-
-// login a user
-router.post("/login", AuthControllers.loginUser);
-
-// verify email
+router.post(
+  "/register",
+  validate(registerSchema),
+  AuthControllers.registerUser,
+);
+router.post("/login", validate(loginSchema), AuthControllers.loginUser);
+router.post("/logout", AuthControllers.logoutUser);
 router.get("/verify-email", AuthControllers.verifyEmail);
-
-// get user details
 router.get(
   "/me",
   auth(UsersRole.admin, UsersRole.student, UsersRole.teacher),

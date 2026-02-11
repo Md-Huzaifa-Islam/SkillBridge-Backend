@@ -215,175 +215,195 @@ var userDetails = async (id) => {
   return await prisma.user.findUnique({
     where: { id },
     select: {
+      id: true,
       name: true,
       email: true,
       role: true,
+      is_banned: true,
+      emailVerified: true,
       createdAt: true
     }
+  });
+};
+var logoutUser = async (headers) => {
+  return auth.api.signOut({
+    headers,
+    asResponse: true
   });
 };
 var AuthServices = {
   registerUser,
   loginUser,
   verifyEmail,
-  userDetails
+  userDetails,
+  logoutUser
+};
+
+// src/lib/AppError.ts
+var AppError = class extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode;
+    this.status = statusCode >= 400 && statusCode < 500 ? "fail" : "error";
+    this.isOperational = true;
+    Error.captureStackTrace(this, this.constructor);
+  }
+};
+
+// src/lib/asyncHandler.ts
+var catchAsync = (fn) => {
+  return (req, res, next) => {
+    fn(req, res, next).catch(next);
+  };
+};
+var validate = (schema, source = "body") => (req, res, next) => {
+  try {
+    const result = schema.safeParse(req[source]);
+    if (!result.success) {
+      const errors = result.error.issues.map(
+        (issue) => `${issue.path.join(".")}: ${issue.message}`
+      );
+      throw new AppError(errors.join(", "), 400);
+    }
+    req[source] = result.data;
+    next();
+  } catch (error) {
+    next(error);
+  }
 };
 
 // src/api/auth/auth.controller.ts
-var registerUser2 = async (req, res) => {
-  try {
-    const { name, email, password, role = UsersRole.student } = req.body;
-    if (role === UsersRole.admin) {
-      return res.status(403).json({ success: false, message: "Can not create admin role" });
+var registerUser2 = catchAsync(async (req, res) => {
+  const { name, email, password, role = UsersRole.student } = req.body;
+  if (role === UsersRole.admin) {
+    throw new AppError("Cannot create admin role", 403);
+  }
+  const result = await AuthServices.registerUser({
+    name,
+    email,
+    password,
+    role
+  });
+  if (!result) {
+    throw new AppError("Failed to create user", 400);
+  }
+  const setCookieHeader = result.headers.get("set-cookie");
+  if (setCookieHeader) {
+    res.setHeader("Set-Cookie", setCookieHeader);
+  }
+  const data = await result.json();
+  const isSuccess = result.status >= 200 && result.status < 300;
+  if (!isSuccess) {
+    throw new AppError(
+      data?.message || data?.error || "Registration failed",
+      result.status
+    );
+  }
+  res.status(201).json({
+    success: true,
+    message: "User registered successfully. Please verify your email.",
+    data
+  });
+});
+var loginUser2 = catchAsync(async (req, res) => {
+  const { email, password } = req.body;
+  const result = await AuthServices.loginUser({ password, email });
+  if (!result) {
+    throw new AppError("Invalid credentials", 401);
+  }
+  const setCookieHeader = result.headers.get("set-cookie");
+  if (setCookieHeader) {
+    res.setHeader("Set-Cookie", setCookieHeader);
+  }
+  const data = await result.json();
+  const isSuccess = result.status >= 200 && result.status < 300;
+  if (!isSuccess) {
+    throw new AppError(
+      data?.message || data?.error || "Invalid email or password",
+      result.status
+    );
+  }
+  let sessionToken = null;
+  if (setCookieHeader) {
+    const tokenMatch = setCookieHeader.match(
+      /skill_bridge\.session_token=([^;]+)/
+    );
+    if (tokenMatch) {
+      sessionToken = tokenMatch[1];
     }
-    const result = await AuthServices.registerUser({
-      name,
-      email,
-      password,
-      role
-    });
-    if (!result) {
-      return res.status(400).json({
-        success: false,
-        message: "Failed to create user"
-      });
+  }
+  res.status(200).json({
+    success: true,
+    message: "Login successful",
+    data,
+    sessionToken
+  });
+});
+var userDetails2 = catchAsync(async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError("User not authenticated", 401);
+  }
+  const result = await AuthServices.userDetails(userId);
+  if (!result) {
+    throw new AppError("User not found", 404);
+  }
+  res.status(200).json({
+    success: true,
+    message: "User details retrieved successfully",
+    data: result
+  });
+});
+var verifyEmail2 = catchAsync(async (req, res) => {
+  const { token } = req.query;
+  if (!token || typeof token !== "string") {
+    throw new AppError("Verification token is required", 400);
+  }
+  const result = await AuthServices.verifyEmail(token);
+  if (!result) {
+    throw new AppError("Failed to verify email", 400);
+  }
+  const data = await result.json();
+  const isSuccess = result.status >= 200 && result.status < 300;
+  if (!isSuccess) {
+    throw new AppError(
+      data?.message || "Email verification failed. The link may have expired.",
+      result.status
+    );
+  }
+  res.status(200).json({
+    success: true,
+    message: "Email verified successfully",
+    data
+  });
+});
+var logoutUser2 = catchAsync(async (req, res) => {
+  const headers = new Headers();
+  Object.entries(req.headers).forEach(([key, value]) => {
+    if (typeof value === "string") {
+      headers.set(key, value);
+    } else if (Array.isArray(value)) {
+      headers.set(key, value.join(", "));
     }
+  });
+  const result = await AuthServices.logoutUser(headers);
+  if (result) {
     const setCookieHeader = result.headers.get("set-cookie");
     if (setCookieHeader) {
       res.setHeader("Set-Cookie", setCookieHeader);
     }
-    const data = await result.json();
-    const isSuccess = result.status >= 200 && result.status < 300;
-    if (!isSuccess) {
-      return res.status(result.status).json({
-        success: false,
-        message: data?.message || data?.error || "Registration failed",
-        error: data?.error
-      });
-    }
-    return res.status(result.status).json({
-      success: true,
-      message: "User registered successfully. Please verify your email.",
-      data
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error?.message || "Failed to register user"
-    });
   }
-};
-var loginUser2 = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required"
-      });
-    }
-    const result = await AuthServices.loginUser({ password, email });
-    if (!result) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials"
-      });
-    }
-    const setCookieHeader = result.headers.get("set-cookie");
-    if (setCookieHeader) {
-      res.setHeader("Set-Cookie", setCookieHeader);
-    }
-    const data = await result.json();
-    const isSuccess = result.status >= 200 && result.status < 300;
-    if (!isSuccess) {
-      return res.status(result.status).json({
-        success: false,
-        message: data?.message || data?.error || "Invalid email or password",
-        error: data?.error
-      });
-    }
-    return res.status(result.status).json({
-      success: true,
-      message: "Login successful",
-      data
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error?.message || "Failed to login"
-    });
-  }
-};
-var userDetails2 = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "User not authenticated"
-      });
-    }
-    const result = await AuthServices.userDetails(userId);
-    if (!result) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "User details retrieved successfully",
-      data: result
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error?.message || "Failed to get user details"
-    });
-  }
-};
-var verifyEmail2 = async (req, res) => {
-  try {
-    const { token } = req.query;
-    if (!token || typeof token !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Verification token is required"
-      });
-    }
-    const result = await AuthServices.verifyEmail(token);
-    if (!result) {
-      return res.status(400).json({
-        success: false,
-        message: "Failed to verify email"
-      });
-    }
-    const data = await result.json();
-    const isSuccess = result.status >= 200 && result.status < 300;
-    if (!isSuccess) {
-      return res.status(result.status).json({
-        success: false,
-        message: data?.message || data?.error || "Email verification failed. The link may have expired.",
-        error: data?.error
-      });
-    }
-    return res.status(200).json({
-      success: true,
-      message: "Email verified successfully",
-      data
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error?.message || "Failed to verify email"
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Logged out successfully"
+  });
+});
 var AuthControllers = {
   registerUser: registerUser2,
   loginUser: loginUser2,
   userDetails: userDetails2,
-  verifyEmail: verifyEmail2
+  verifyEmail: verifyEmail2,
+  logoutUser: logoutUser2
 };
 
 // src/middleware/auth.ts
@@ -418,10 +438,85 @@ var auth2 = (...roles) => {
   };
 };
 
+// src/lib/validation.ts
+import { z } from "zod";
+var registerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").max(100),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters").max(128),
+  role: z.enum(["student", "teacher"], {
+    message: "Role must be either student or teacher"
+  })
+});
+var loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required")
+});
+var createBookingSchema = z.object({
+  tutor_id: z.string().min(1, "Tutor ID is required"),
+  date: z.string().min(1, "Date is required"),
+  start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"),
+  end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)")
+});
+var updateBookingStatusSchema = z.object({
+  status: z.enum(["confirm", "completed", "cancelled"], {
+    message: "Status must be confirm, completed, or cancelled"
+  })
+});
+var createReviewSchema = z.object({
+  booking_id: z.string().min(1, "Booking ID is required"),
+  rating: z.number().int().min(1, "Rating must be at least 1").max(5, "Rating must be at most 5"),
+  review: z.string().optional()
+});
+var updateTutorProfileSchema = z.object({
+  category_id: z.string().min(1, "Category ID is required").optional(),
+  description: z.string().min(10, "Description must be at least 10 characters").optional(),
+  price_per_hour: z.number().int().positive("Price must be positive").optional()
+});
+var availabilityEntrySchema = z.object({
+  day: z.enum(
+    [
+      "saturday",
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday"
+    ],
+    { message: "Invalid day" }
+  ),
+  start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"),
+  end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)")
+});
+var updateAvailabilitySchema = z.object({
+  availability: z.array(availabilityEntrySchema).min(1, "At least one availability slot is required")
+});
+var createCategorySchema = z.object({
+  name: z.string().min(2, "Category name must be at least 2 characters").max(100)
+});
+var updateCategorySchema = z.object({
+  name: z.string().min(2, "Category name must be at least 2 characters").max(100)
+});
+var updateUserStatusSchema = z.object({
+  is_banned: z.boolean().optional(),
+  role: z.enum(["student", "teacher", "admin"], {
+    message: "Invalid role"
+  }).optional()
+});
+var paramIdSchema = z.object({
+  id: z.string().min(1, "ID is required")
+});
+
 // src/api/auth/auth.routes.ts
 var router = Router();
-router.post("/register", AuthControllers.registerUser);
-router.post("/login", AuthControllers.loginUser);
+router.post(
+  "/register",
+  validate(registerSchema),
+  AuthControllers.registerUser
+);
+router.post("/login", validate(loginSchema), AuthControllers.loginUser);
+router.post("/logout", AuthControllers.logoutUser);
 router.get("/verify-email", AuthControllers.verifyEmail);
 router.get(
   "/me",
@@ -624,62 +719,38 @@ var TutorsServices = {
 };
 
 // src/api/tutors/tutors.controller.ts
-var getTutors2 = async (req, res) => {
-  try {
-    const query = {
-      search: req.query.search,
-      sortBy: req.query.sortBy,
-      sortOrder: req.query.sortOrder,
-      category: req.query.category,
-      featured: req.query.featured,
-      page: req.query.page,
-      limit: req.query.limit
-    };
-    const result = await TutorsServices.getTutors(query);
-    res.status(200).json({
-      success: true,
-      message: "Tutors retrieved successfully",
-      ...result
-    });
-  } catch (error) {
-    console.error("Error fetching tutors:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch tutors",
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
+var getTutors2 = catchAsync(async (req, res) => {
+  const query = {
+    search: req.query.search,
+    sortBy: req.query.sortBy,
+    sortOrder: req.query.sortOrder,
+    category: req.query.category,
+    featured: req.query.featured,
+    page: req.query.page,
+    limit: req.query.limit
+  };
+  const result = await TutorsServices.getTutors(query);
+  res.status(200).json({
+    success: true,
+    message: "Tutors retrieved successfully",
+    ...result
+  });
+});
+var getATutor2 = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  if (!id || typeof id !== "string") {
+    throw new AppError("Valid tutor ID is required", 400);
   }
-};
-var getATutor2 = async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (!id || typeof id !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Valid tutor ID is required"
-      });
-    }
-    const tutor = await TutorsServices.getATutor(id);
-    if (!tutor) {
-      return res.status(404).json({
-        success: false,
-        message: "Tutor not found or has no tutor profiles"
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "Tutor details retrieved successfully",
-      data: tutor
-    });
-  } catch (error) {
-    console.error("Error fetching tutor:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch tutor details",
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
+  const tutor = await TutorsServices.getATutor(id);
+  if (!tutor) {
+    throw new AppError("Tutor not found", 404);
   }
-};
+  res.status(200).json({
+    success: true,
+    message: "Tutor details retrieved successfully",
+    data: tutor
+  });
+});
 var TutorsControllers = {
   getTutors: getTutors2,
   getATutor: getATutor2
@@ -723,68 +794,33 @@ var CategoriesService = {
 };
 
 // src/api/categories/categories.controller.ts
-var getAllCategories2 = async (req, res) => {
-  try {
-    const categories = await CategoriesService.getAllCategories();
-    res.status(200).json({
-      success: true,
-      message: "Categories retrieved successfully",
-      data: categories
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to retrieve categories",
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-};
-var createCategory2 = async (req, res) => {
-  try {
-    const { name } = req.body;
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        message: "Category name is required"
-      });
-    }
-    const category = await CategoriesService.createCategory(name);
-    res.status(201).json({
-      success: true,
-      message: "Category created successfully",
-      data: category
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to create category",
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-};
-var deleteCategory2 = async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Category ID is required"
-      });
-    }
-    const category = await CategoriesService.deleteCategory(id);
-    res.status(200).json({
-      success: true,
-      message: "Category deleted successfully",
-      data: category
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to delete category",
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-};
+var getAllCategories2 = catchAsync(async (_req, res) => {
+  const categories = await CategoriesService.getAllCategories();
+  res.status(200).json({
+    success: true,
+    message: "Categories retrieved successfully",
+    data: categories
+  });
+});
+var createCategory2 = catchAsync(async (req, res) => {
+  const { name } = req.body;
+  const category = await CategoriesService.createCategory(name);
+  res.status(201).json({
+    success: true,
+    message: "Category created successfully",
+    data: category
+  });
+});
+var deleteCategory2 = catchAsync(async (req, res) => {
+  const id = req.params.id;
+  if (!id) throw new AppError("Category ID is required", 400);
+  const category = await CategoriesService.deleteCategory(id);
+  res.status(200).json({
+    success: true,
+    message: "Category deleted successfully",
+    data: category
+  });
+});
 var CategoriesController = {
   getAllCategories: getAllCategories2,
   createCategory: createCategory2,
@@ -794,7 +830,12 @@ var CategoriesController = {
 // src/api/categories/categories.routes.ts
 var router3 = Router3();
 router3.get("/", CategoriesController.getAllCategories);
-router3.post("/", auth2(UsersRole.admin), CategoriesController.createCategory);
+router3.post(
+  "/",
+  auth2(UsersRole.admin),
+  validate(createCategorySchema),
+  CategoriesController.createCategory
+);
 router3.delete(
   "/:id",
   auth2(UsersRole.admin),
@@ -812,7 +853,7 @@ var createBooking = async (data) => {
     select: { price_per_hour: true }
   });
   if (!tutorProfile) {
-    throw new Error("Tutor not found");
+    throw new AppError("Tutor not found", 404);
   }
   const startHour = (/* @__PURE__ */ new Date(`1970-01-01T${start_time}`)).getHours();
   const endHour = (/* @__PURE__ */ new Date(`1970-01-01T${end_time}`)).getHours();
@@ -947,10 +988,10 @@ var getBookingDetails = async (bookingId, userId, userRole) => {
     return null;
   }
   if (userRole === "student" && booking.student_id !== userId) {
-    throw new Error("You don't have permission to view this booking");
+    throw new AppError("You don't have permission to view this booking", 403);
   }
   if (userRole === "teacher" && booking.bookingTutor.user_id !== userId) {
-    throw new Error("You don't have permission to view this booking");
+    throw new AppError("You don't have permission to view this booking", 403);
   }
   return booking;
 };
@@ -962,37 +1003,30 @@ var updateBookingStatus = async (bookingId, userId, userRole, status) => {
     }
   });
   if (!booking) {
-    const error = new Error("Booking not found");
-    error.statusCode = 404;
-    throw error;
+    throw new AppError("Booking not found", 404);
   }
   if (userRole === "student") {
     if (booking.student_id !== userId) {
-      const error = new Error(
-        "You don't have permission to update this booking"
+      throw new AppError(
+        "You don't have permission to update this booking",
+        403
       );
-      error.statusCode = 403;
-      throw error;
     }
     if (status !== "cancelled") {
-      const error = new Error("Students can only cancel bookings");
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Students can only cancel bookings", 400);
     }
   } else if (userRole === "teacher") {
     if (booking.bookingTutor.user_id !== userId) {
-      const error = new Error(
-        "You don't have permission to update this booking"
+      throw new AppError(
+        "You don't have permission to update this booking",
+        403
       );
-      error.statusCode = 403;
-      throw error;
     }
     if (!["completed", "cancelled"].includes(status)) {
-      const error = new Error(
-        "Tutors can only mark bookings as completed or cancelled"
+      throw new AppError(
+        "Tutors can only mark bookings as completed or cancelled",
+        400
       );
-      error.statusCode = 400;
-      throw error;
     }
   }
   const updatedBooking = await prisma.booking.update({
@@ -1033,169 +1067,71 @@ var BookingsService = {
 };
 
 // src/api/bookings/bookings.controller.ts
-var createBooking2 = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: User not found"
-      });
-    }
-    const { tutor_id, start_time, end_time, date } = req.body;
-    if (!tutor_id || !start_time || !end_time || !date) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required: tutor_id, start_time, end_time, date"
-      });
-    }
-    const booking = await BookingsService.createBooking({
-      student_id: userId,
-      tutor_id,
-      start_time,
-      end_time,
-      date
-    });
-    res.status(201).json({
-      success: true,
-      message: "Booking created successfully",
-      data: booking
-    });
-  } catch (error) {
-    console.error("Error creating booking:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create booking",
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-};
-var getUserBookings2 = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const userRole = req.user?.role;
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: User not found"
-      });
-    }
-    const query = {
-      page: req.query.page,
-      limit: req.query.limit,
-      status: req.query.status
-    };
-    const result = await BookingsService.getUserBookings(
-      userId,
-      userRole,
-      query
-    );
-    res.status(200).json({
-      success: true,
-      message: "Bookings retrieved successfully",
-      ...result
-    });
-  } catch (error) {
-    console.error("Error fetching bookings:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch bookings",
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-};
-var getBookingDetails2 = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const userRole = req.user?.role;
-    const { id } = req.params;
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: User not found"
-      });
-    }
-    if (!id || typeof id !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Valid booking ID is required"
-      });
-    }
-    const booking = await BookingsService.getBookingDetails(
-      id,
-      userId,
-      userRole
-    );
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found"
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "Booking details retrieved successfully",
-      data: booking
-    });
-  } catch (error) {
-    console.error("Error fetching booking details:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch booking details",
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-};
-var updateBookingStatus2 = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const userRole = req.user?.role;
-    const { id } = req.params;
-    const { status } = req.body;
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: User not found"
-      });
-    }
-    if (!id || typeof id !== "string") {
-      return res.status(400).json({
-        success: false,
-        message: "Valid booking ID is required"
-      });
-    }
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        message: "Status is required"
-      });
-    }
-    const validStatuses = ["confirm", "completed", "cancelled"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`
-      });
-    }
-    const booking = await BookingsService.updateBookingStatus(
-      id,
-      userId,
-      userRole,
-      status
-    );
-    res.status(200).json({
-      success: true,
-      message: "Booking status updated successfully",
-      data: booking
-    });
-  } catch (error) {
-    console.error("Error updating booking status:", error);
-    res.status(error.statusCode || 500).json({
-      success: false,
-      message: error.message || "Failed to update booking status"
-    });
-  }
-};
+var createBooking2 = catchAsync(async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) throw new AppError("Unauthorized", 401);
+  const { tutor_id, start_time, end_time, date } = req.body;
+  const booking = await BookingsService.createBooking({
+    student_id: userId,
+    tutor_id,
+    start_time,
+    end_time,
+    date
+  });
+  res.status(201).json({
+    success: true,
+    message: "Booking created successfully",
+    data: booking
+  });
+});
+var getUserBookings2 = catchAsync(async (req, res) => {
+  const userId = req.user?.id;
+  const userRole = req.user?.role;
+  if (!userId) throw new AppError("Unauthorized", 401);
+  const query = {
+    page: req.query.page,
+    limit: req.query.limit,
+    status: req.query.status
+  };
+  const result = await BookingsService.getUserBookings(userId, userRole, query);
+  res.status(200).json({
+    success: true,
+    message: "Bookings retrieved successfully",
+    ...result
+  });
+});
+var getBookingDetails2 = catchAsync(async (req, res) => {
+  const userId = req.user?.id;
+  const userRole = req.user?.role;
+  const id = req.params.id;
+  if (!userId) throw new AppError("Unauthorized", 401);
+  if (!id) throw new AppError("Booking ID is required", 400);
+  const booking = await BookingsService.getBookingDetails(id, userId, userRole);
+  if (!booking) throw new AppError("Booking not found", 404);
+  res.status(200).json({
+    success: true,
+    message: "Booking details retrieved successfully",
+    data: booking
+  });
+});
+var updateBookingStatus2 = catchAsync(async (req, res) => {
+  const userId = req.user?.id;
+  const userRole = req.user?.role;
+  const id = req.params.id;
+  const { status } = req.body;
+  if (!userId) throw new AppError("Unauthorized", 401);
+  const booking = await BookingsService.updateBookingStatus(
+    id,
+    userId,
+    userRole,
+    status
+  );
+  res.status(200).json({
+    success: true,
+    message: "Booking status updated successfully",
+    data: booking
+  });
+});
 var BookingsController = {
   createBooking: createBooking2,
   getUserBookings: getUserBookings2,
@@ -1205,10 +1141,15 @@ var BookingsController = {
 
 // src/api/bookings/bookings.route.ts
 var router4 = Router4();
-router4.post("/", auth2(UsersRole.student), BookingsController.createBooking);
+router4.post(
+  "/",
+  auth2(UsersRole.student),
+  validate(createBookingSchema),
+  BookingsController.createBooking
+);
 router4.get(
   "/",
-  auth2(UsersRole.student, UsersRole.admin),
+  auth2(UsersRole.student, UsersRole.teacher, UsersRole.admin),
   BookingsController.getUserBookings
 );
 router4.get(
@@ -1219,6 +1160,7 @@ router4.get(
 router4.patch(
   "/:id",
   auth2(UsersRole.student, UsersRole.teacher, UsersRole.admin),
+  validate(updateBookingStatusSchema),
   BookingsController.updateBookingStatus
 );
 
@@ -1269,8 +1211,7 @@ var TutorService = class {
         where: { user_id: userId }
       });
       if (!tutorProfile) {
-        const error = new Error("Tutor profile not found");
-        error.statusCode = 404;
+        const error = new AppError("Tutor profile not found", 404);
         throw error;
       }
       const sessions = await prisma.booking.findMany({
@@ -1424,143 +1365,90 @@ var TutorService = class {
 
 // src/api/tutor/tutor.controller.ts
 var TutorController = class {
-  static async getProfile(req, res) {
-    try {
+  static {
+    this.getProfile = catchAsync(async (req, res) => {
       const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: "User not authenticated"
-        });
-      }
+      if (!userId) throw new AppError("User not authenticated", 401);
       const profile = await TutorService.getProfile(userId);
       if (!profile) {
-        return res.status(404).json({
-          success: false,
-          message: "Tutor profile not found. Please create one first."
-        });
+        throw new AppError(
+          "Tutor profile not found. Please create one first.",
+          404
+        );
       }
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "Profile retrieved successfully",
         data: profile
       });
-    } catch (error) {
-      console.error("Error getting tutor profile:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to get profile"
-      });
-    }
+    });
   }
-  static async getSessions(req, res) {
-    try {
+  static {
+    this.getSessions = catchAsync(async (req, res) => {
       const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: "User not authenticated"
-        });
-      }
+      if (!userId) throw new AppError("User not authenticated", 401);
       const sessions = await TutorService.getSessions(userId);
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "Sessions retrieved successfully",
         data: sessions
       });
-    } catch (error) {
-      console.error("Error getting tutor sessions:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to get sessions"
-      });
-    }
+    });
   }
-  static async updateProfile(req, res) {
-    try {
+  static {
+    this.updateProfile = catchAsync(async (req, res) => {
       const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: "User not authenticated"
-        });
-      }
+      if (!userId) throw new AppError("User not authenticated", 401);
       const { description, price_per_hour, category_id } = req.body;
       if (!description && !price_per_hour && !category_id) {
-        return res.status(400).json({
-          success: false,
-          message: "At least one field is required to update the profile"
-        });
+        throw new AppError("At least one field is required to update", 400);
       }
       const updatedProfile = await TutorService.updateProfile(userId, {
         description,
         price_per_hour,
         category_id
       });
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "Profile updated successfully",
         data: updatedProfile
       });
-    } catch (error) {
-      console.error("Error updating tutor profile:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to update profile"
-      });
-    }
+    });
   }
-  static async updateAvailability(req, res) {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: "User not authenticated"
+  static {
+    this.updateAvailability = catchAsync(
+      async (req, res) => {
+        const userId = req.user?.id;
+        if (!userId) throw new AppError("User not authenticated", 401);
+        const { availability } = req.body;
+        const updatedAvailability = await TutorService.updateAvailability(
+          userId,
+          availability
+        );
+        res.status(200).json({
+          success: true,
+          message: "Availability updated successfully",
+          data: updatedAvailability
         });
       }
-      const { availability } = req.body;
-      if (!Array.isArray(availability) || availability.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Availability must be a non-empty array"
-        });
-      }
-      for (const avail of availability) {
-        if (!avail.day || !avail.start_time || !avail.end_time) {
-          return res.status(400).json({
-            success: false,
-            message: "Each availability entry must have day, start_time, and end_time"
-          });
-        }
-      }
-      const updatedAvailability = await TutorService.updateAvailability(
-        userId,
-        availability
-      );
-      return res.status(200).json({
-        success: true,
-        message: "Availability updated successfully",
-        data: updatedAvailability
-      });
-    } catch (error) {
-      console.error("Error updating availability:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to update availability"
-      });
-    }
+    );
   }
 };
 
 // src/api/tutor/tutor.route.ts
 var router5 = Router5();
 router5.get("/profile", auth2(UsersRole.teacher), TutorController.getProfile);
-router5.put("/profile", auth2(UsersRole.teacher), TutorController.updateProfile);
+router5.put(
+  "/profile",
+  auth2(UsersRole.teacher),
+  validate(updateTutorProfileSchema),
+  TutorController.updateProfile
+);
 router5.get("/sessions", auth2(UsersRole.teacher), TutorController.getSessions);
 router5.put(
   "/availability",
   auth2(UsersRole.teacher),
+  validate(updateAvailabilitySchema),
   TutorController.updateAvailability
 );
 
@@ -1578,26 +1466,16 @@ var ReviewsService = class {
         }
       });
       if (!booking) {
-        const error = new Error("Booking not found");
-        error.statusCode = 404;
-        throw error;
+        throw new AppError("Booking not found", 404);
       }
       if (booking.student_id !== studentId) {
-        const error = new Error("You can only review your own bookings");
-        error.statusCode = 403;
-        throw error;
+        throw new AppError("You can only review your own bookings", 403);
       }
       if (booking.status !== "completed") {
-        const error = new Error("You can only review completed bookings");
-        error.statusCode = 400;
-        throw error;
+        throw new AppError("You can only review completed bookings", 400);
       }
       if (booking.ratings) {
-        const error = new Error(
-          "A review already exists for this booking"
-        );
-        error.statusCode = 409;
-        throw error;
+        throw new AppError("A review already exists for this booking", 409);
       }
       const createdReview = await prisma.rating.create({
         data: {
@@ -1635,51 +1513,33 @@ var ReviewsService = class {
 
 // src/api/reviews/reviews.controller.ts
 var ReviewsController = class {
-  static async createReview(req, res) {
-    try {
+  static {
+    this.createReview = catchAsync(async (req, res) => {
       const studentId = req.user?.id;
-      if (!studentId) {
-        return res.status(401).json({
-          success: false,
-          message: "User not authenticated"
-        });
-      }
+      if (!studentId) throw new AppError("User not authenticated", 401);
       const { booking_id, rating, review } = req.body;
-      if (!booking_id || !rating) {
-        return res.status(400).json({
-          success: false,
-          message: "booking_id and rating are required"
-        });
-      }
-      if (typeof rating !== "number" || rating < 1 || rating > 5) {
-        return res.status(400).json({
-          success: false,
-          message: "Rating must be a number between 1 and 5"
-        });
-      }
       const createdReview = await ReviewsService.createReview(studentId, {
         booking_id,
         rating,
         review
       });
-      return res.status(201).json({
+      res.status(201).json({
         success: true,
         message: "Review created successfully",
         data: createdReview
       });
-    } catch (error) {
-      console.error("Error creating review:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to create review"
-      });
-    }
+    });
   }
 };
 
 // src/api/reviews/reviews.routes.ts
 var router6 = Router6();
-router6.post("/", auth2(UsersRole.student), ReviewsController.createReview);
+router6.post(
+  "/",
+  auth2(UsersRole.student),
+  validate(createReviewSchema),
+  ReviewsController.createReview
+);
 
 // src/api/admin/admin.routes.ts
 import { Router as Router7 } from "express";
@@ -1769,9 +1629,7 @@ var AdminService = class {
         where: { id: userId }
       });
       if (!user) {
-        const error = new Error("User not found");
-        error.statusCode = 404;
-        throw error;
+        throw new AppError("User not found", 404);
       }
       const updateData = {};
       if (data.is_banned !== void 0) updateData.is_banned = data.is_banned;
@@ -1801,85 +1659,46 @@ var AdminService = class {
 
 // src/api/admin/admin.controller.ts
 var AdminController = class {
-  /**
-   * Get all users in the system
-   * @route GET /api/admin/users
-   * @access Private (Admin only)
-   */
-  static async getAllUsers(req, res) {
-    try {
+  static {
+    this.getAllUsers = catchAsync(async (_req, res) => {
       const users = await AdminService.getAllUsers();
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "Users retrieved successfully",
         data: users
       });
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to fetch users"
-      });
-    }
+    });
   }
-  /**
-   * Get all bookings in the system
-   * @route GET /api/admin/bookings
-   * @access Private (Admin only)
-   */
-  static async getAllBookings(req, res) {
-    try {
+  static {
+    this.getAllBookings = catchAsync(async (_req, res) => {
       const bookings = await AdminService.getAllBookings();
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "Bookings retrieved successfully",
         data: bookings
       });
-    } catch (error) {
-      console.error("Error fetching bookings:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to fetch bookings"
-      });
-    }
+    });
   }
-  /**
-   * Update user status (ban/unban) or role
-   * @route PATCH /api/admin/users/:id
-   * @access Private (Admin only)
-   */
-  static async updateUserStatus(req, res) {
-    try {
+  static {
+    this.updateUserStatus = catchAsync(async (req, res) => {
       const id = req.params.id;
       const { is_banned, role } = req.body;
       if (is_banned === void 0 && !role) {
-        return res.status(400).json({
-          success: false,
-          message: "At least one field (is_banned or role) is required"
-        });
-      }
-      if (role && !["student", "teacher", "admin"].includes(role)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid role. Must be student, teacher, or admin"
-        });
+        throw new AppError(
+          "At least one field (is_banned or role) is required",
+          400
+        );
       }
       const updatedUser = await AdminService.updateUserStatus(id, {
         is_banned,
         role
       });
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "User status updated successfully",
         data: updatedUser
       });
-    } catch (error) {
-      console.error("Error updating user status:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to update user status"
-      });
-    }
+    });
   }
 };
 
@@ -1890,6 +1709,7 @@ router7.get("/bookings", auth2(UsersRole.admin), AdminController.getAllBookings)
 router7.patch(
   "/users/:id",
   auth2(UsersRole.admin),
+  validate(updateUserStatusSchema),
   AdminController.updateUserStatus
 );
 
@@ -1914,19 +1734,46 @@ router8.use("/admin", router7);
 import cors from "cors";
 
 // src/middleware/errorHandler.ts
-var errorHandler = (err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  const status = err.status || "error";
+import { ZodError } from "zod";
+var errorHandler = (err, _req, res, _next) => {
+  let statusCode = err.statusCode || 500;
+  let message = err.message || "Internal Server Error";
+  let errors;
+  if (err instanceof ZodError) {
+    statusCode = 400;
+    message = "Validation failed";
+    errors = err.issues.map(
+      (issue) => `${issue.path.join(".")}: ${issue.message}`
+    );
+  }
+  if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    message = err.message;
+  }
+  if (err.code === "P2002") {
+    statusCode = 409;
+    const target = err.meta?.target;
+    message = `Duplicate value for ${Array.isArray(target) ? target.join(", ") : target || "field"}`;
+  }
+  if (err.code === "P2025") {
+    statusCode = 404;
+    message = "Record not found";
+  }
+  if (err.code === "P2003") {
+    statusCode = 400;
+    message = "Invalid reference: related record not found";
+  }
   res.status(statusCode).json({
-    status,
-    message: err.message || "Internal Server Error",
+    success: false,
+    message,
+    ...errors && { errors },
     ...process.env.NODE_ENV === "development" && { stack: err.stack }
   });
 };
-var notFoundHandler = (req, res, next) => {
+var notFoundHandler = (req, res, _next) => {
   res.status(404).json({
-    status: "error",
-    message: `Route ${req.originalUrl} not found`
+    success: false,
+    message: `Route ${req.method} ${req.originalUrl} not found`
   });
 };
 

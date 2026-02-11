@@ -9,7 +9,6 @@ import { AdminRoutes } from "./admin/admin.routes";
 
 const router = Router();
 
-// Health check endpoint
 router.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -24,16 +23,12 @@ router.use("/tutors", TutorsRoutes);
 
 router.use("/tutor", TutorRoutes);
 
-// category routes
 router.use("/categories", CategoriesRoutes);
 
-// bookings routes
 router.use("/bookings", BookingRoutes);
 
-// reviews routes
 router.use("/reviews", ReviewsRoutes);
 
-// admin routes (authenticated admin only)
 router.use("/admin", AdminRoutes);
 
 export { router as ApiRoutes };

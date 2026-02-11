@@ -1,157 +1,82 @@
 import { Request, Response } from "express";
 import { TutorService } from "./tutor.service";
+import { catchAsync } from "../../lib/asyncHandler";
+import { AppError } from "../../lib/AppError";
 
 export class TutorController {
-  static async getProfile(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
+  static getProfile = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError("User not authenticated", 401);
 
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: "User not authenticated",
-        });
-      }
+    const profile = await TutorService.getProfile(userId);
 
-      const profile = await TutorService.getProfile(userId);
-
-      if (!profile) {
-        return res.status(404).json({
-          success: false,
-          message: "Tutor profile not found. Please create one first.",
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: "Profile retrieved successfully",
-        data: profile,
-      });
-    } catch (error: any) {
-      console.error("Error getting tutor profile:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to get profile",
-      });
+    if (!profile) {
+      throw new AppError(
+        "Tutor profile not found. Please create one first.",
+        404,
+      );
     }
-  }
 
-  static async getSessions(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
+    res.status(200).json({
+      success: true,
+      message: "Profile retrieved successfully",
+      data: profile,
+    });
+  });
 
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: "User not authenticated",
-        });
-      }
+  static getSessions = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError("User not authenticated", 401);
 
-      const sessions = await TutorService.getSessions(userId);
+    const sessions = await TutorService.getSessions(userId);
 
-      return res.status(200).json({
-        success: true,
-        message: "Sessions retrieved successfully",
-        data: sessions,
-      });
-    } catch (error: any) {
-      console.error("Error getting tutor sessions:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to get sessions",
-      });
+    res.status(200).json({
+      success: true,
+      message: "Sessions retrieved successfully",
+      data: sessions,
+    });
+  });
+
+  static updateProfile = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError("User not authenticated", 401);
+
+    const { description, price_per_hour, category_id } = req.body;
+
+    if (!description && !price_per_hour && !category_id) {
+      throw new AppError("At least one field is required to update", 400);
     }
-  }
 
-  static async updateProfile(req: Request, res: Response) {
-    try {
+    const updatedProfile = await TutorService.updateProfile(userId, {
+      description,
+      price_per_hour,
+      category_id,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedProfile,
+    });
+  });
+
+  static updateAvailability = catchAsync(
+    async (req: Request, res: Response) => {
       const userId = req.user?.id;
-
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: "User not authenticated",
-        });
-      }
-
-      const { description, price_per_hour, category_id } = req.body;
-
-      // Validate required fields
-      if (!description && !price_per_hour && !category_id) {
-        return res.status(400).json({
-          success: false,
-          message: "At least one field is required to update the profile",
-        });
-      }
-
-      const updatedProfile = await TutorService.updateProfile(userId, {
-        description,
-        price_per_hour,
-        category_id,
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: "Profile updated successfully",
-        data: updatedProfile,
-      });
-    } catch (error: any) {
-      console.error("Error updating tutor profile:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to update profile",
-      });
-    }
-  }
-
-  static async updateAvailability(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: "User not authenticated",
-        });
-      }
+      if (!userId) throw new AppError("User not authenticated", 401);
 
       const { availability } = req.body;
-
-      // Validate availability array
-      if (!Array.isArray(availability) || availability.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Availability must be a non-empty array",
-        });
-      }
-
-      // Validate each availability entry
-      for (const avail of availability) {
-        if (!avail.day || !avail.start_time || !avail.end_time) {
-          return res.status(400).json({
-            success: false,
-            message:
-              "Each availability entry must have day, start_time, and end_time",
-          });
-        }
-      }
 
       const updatedAvailability = await TutorService.updateAvailability(
         userId,
         availability,
       );
 
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "Availability updated successfully",
         data: updatedAvailability,
       });
-    } catch (error: any) {
-      console.error("Error updating availability:", error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || "Failed to update availability",
-      });
-    }
-  }
+    },
+  );
 }

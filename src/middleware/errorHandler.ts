@@ -1,22 +1,50 @@
 import { Request, Response, NextFunction } from "express";
-
-export interface ApiError extends Error {
-  statusCode?: number;
-  status?: string;
-}
+import { ZodError } from "zod";
+import { AppError } from "../lib/AppError";
 
 export const errorHandler = (
-  err: ApiError,
-  req: Request,
+  err: any,
+  _req: Request,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ) => {
-  const statusCode = err.statusCode || 500;
-  const status = err.status || "error";
+  let statusCode = err.statusCode || 500;
+  let message = err.message || "Internal Server Error";
+  let errors: string[] | undefined;
+
+  if (err instanceof ZodError) {
+    statusCode = 400;
+    message = "Validation failed";
+    errors = err.issues.map(
+      (issue: any) => `${issue.path.join(".")}: ${issue.message}`,
+    );
+  }
+
+  if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    message = err.message;
+  }
+
+  if (err.code === "P2002") {
+    statusCode = 409;
+    const target = err.meta?.target;
+    message = `Duplicate value for ${Array.isArray(target) ? target.join(", ") : target || "field"}`;
+  }
+
+  if (err.code === "P2025") {
+    statusCode = 404;
+    message = "Record not found";
+  }
+
+  if (err.code === "P2003") {
+    statusCode = 400;
+    message = "Invalid reference: related record not found";
+  }
 
   res.status(statusCode).json({
-    status,
-    message: err.message || "Internal Server Error",
+    success: false,
+    message,
+    ...(errors && { errors }),
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };
@@ -24,10 +52,10 @@ export const errorHandler = (
 export const notFoundHandler = (
   req: Request,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ) => {
   res.status(404).json({
-    status: "error",
-    message: `Route ${req.originalUrl} not found`,
+    success: false,
+    message: `Route ${req.method} ${req.originalUrl} not found`,
   });
 };

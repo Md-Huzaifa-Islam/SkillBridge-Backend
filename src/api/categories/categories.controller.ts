@@ -1,77 +1,41 @@
 import { Request, Response } from "express";
 import { CategoriesService } from "./categories.service";
+import { catchAsync } from "../../lib/asyncHandler";
+import { AppError } from "../../lib/AppError";
 
-const getAllCategories = async (req: Request, res: Response) => {
-  try {
-    const categories = await CategoriesService.getAllCategories();
+const getAllCategories = catchAsync(async (_req: Request, res: Response) => {
+  const categories = await CategoriesService.getAllCategories();
 
-    res.status(200).json({
-      success: true,
-      message: "Categories retrieved successfully",
-      data: categories,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to retrieve categories",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Categories retrieved successfully",
+    data: categories,
+  });
+});
 
-const createCategory = async (req: Request, res: Response) => {
-  try {
-    const { name } = req.body;
+const createCategory = catchAsync(async (req: Request, res: Response) => {
+  const { name } = req.body;
+  const category = await CategoriesService.createCategory(name);
 
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        message: "Category name is required",
-      });
-    }
+  res.status(201).json({
+    success: true,
+    message: "Category created successfully",
+    data: category,
+  });
+});
 
-    const category = await CategoriesService.createCategory(name);
+const deleteCategory = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  if (!id) throw new AppError("Category ID is required", 400);
 
-    res.status(201).json({
-      success: true,
-      message: "Category created successfully",
-      data: category,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to create category",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
+  const category = await CategoriesService.deleteCategory(id);
 
-const deleteCategory = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Category ID is required",
-      });
-    }
-
-    const category = await CategoriesService.deleteCategory(id as string);
-
-    res.status(200).json({
-      success: true,
-      message: "Category deleted successfully",
-      data: category,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to delete category",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Category deleted successfully",
+    data: category,
+  });
+});
 
 export const CategoriesController = {
   getAllCategories,

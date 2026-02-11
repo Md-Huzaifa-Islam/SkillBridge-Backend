@@ -20,11 +20,6 @@ export interface PaginationResult<T> {
   };
 }
 
-/**
- * Calculate pagination parameters for database queries
- * @param options - Pagination options with page and limit
- * @returns Object with page, limit, and skip values
- */
 export const calculatePagination = (options: PaginationOptions) => {
   const page = Number(options.page) || 1;
   const limit = Number(options.limit) || 10;
@@ -37,9 +32,6 @@ export const calculatePagination = (options: PaginationOptions) => {
   };
 };
 
-/**
- * Build pagination response
- */
 export const buildPaginationResponse = <T>(
   data: T[],
   total: number,
@@ -61,9 +53,6 @@ export const buildPaginationResponse = <T>(
   };
 };
 
-/**
- * Parse sort parameters and validate against allowed fields
- */
 export const parseSortOptions = (
   sortBy?: string,
   sortOrder?: string,
@@ -83,14 +72,10 @@ export const parseSortOptions = (
   };
 };
 
-/**
- * Build Prisma orderBy object
- */
 export const buildPrismaOrderBy = (
   sortBy: string,
   sortOrder: "asc" | "desc",
 ): any => {
-  // Handle nested sorting (e.g., "user.name")
   if (sortBy.includes(".")) {
     const [relation, field] = sortBy.split(".");
     return {

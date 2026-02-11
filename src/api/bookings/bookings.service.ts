@@ -4,6 +4,7 @@ import {
   calculatePagination,
 } from "../../lib/pagination";
 import { prisma } from "../../lib/prisma";
+import { AppError } from "../../lib/AppError";
 
 interface CreateBookingInput {
   student_id: string;
@@ -22,14 +23,13 @@ interface GetBookingsQuery {
 const createBooking = async (data: CreateBookingInput) => {
   const { student_id, tutor_id, start_time, end_time, date } = data;
 
-  // Get tutor profile to calculate price
   const tutorProfile = await prisma.tutorProfile.findUnique({
     where: { id: tutor_id },
     select: { price_per_hour: true },
   });
 
   if (!tutorProfile) {
-    throw new Error("Tutor not found");
+    throw new AppError("Tutor not found", 404);
   }
 
   const startHour = new Date(`1970-01-01T${start_time}`).getHours();
@@ -37,7 +37,6 @@ const createBooking = async (data: CreateBookingInput) => {
   const hours = endHour - startHour;
   const total_price = hours * tutorProfile.price_per_hour;
 
-  // Generate a unique ID (you might want to use a UUID library)
   const id = `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   const booking = await prisma.booking.create({
@@ -86,7 +85,6 @@ const getUserBookings = async (
 ) => {
   const { page, limit, status } = query;
 
-  // Calculate pagination
   const {
     page: currentPage,
     limit: pageLimit,
@@ -96,7 +94,6 @@ const getUserBookings = async (
     limit: limit ? Number(limit) : 10,
   });
 
-  // Build where clause based on user role
   const where: Prisma.BookingWhereInput = {};
 
   if (userRole === "student") {
@@ -106,14 +103,11 @@ const getUserBookings = async (
       user_id: userId,
     };
   }
-  // Admin can see all bookings, so no filter needed
 
-  // Add status filter if provided
   if (status) {
     where.status = status as any;
   }
 
-  // Fetch bookings with count
   const [bookings, total] = await prisma.$transaction([
     prisma.booking.findMany({
       where,
@@ -191,13 +185,12 @@ const getBookingDetails = async (
     return null;
   }
 
-  // Check if user has permission to view this booking
   if (userRole === "student" && booking.student_id !== userId) {
-    throw new Error("You don't have permission to view this booking");
+    throw new AppError("You don't have permission to view this booking", 403);
   }
 
   if (userRole === "teacher" && booking.bookingTutor.user_id !== userId) {
-    throw new Error("You don't have permission to view this booking");
+    throw new AppError("You don't have permission to view this booking", 403);
   }
 
   return booking;
@@ -209,7 +202,6 @@ const updateBookingStatus = async (
   userRole: string | undefined,
   status: string,
 ) => {
-  // Find the booking first
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: {
@@ -218,44 +210,33 @@ const updateBookingStatus = async (
   });
 
   if (!booking) {
-    const error: any = new Error("Booking not found");
-    error.statusCode = 404;
-    throw error;
+    throw new AppError("Booking not found", 404);
   }
 
-  // Check permissions
   if (userRole === "student") {
-    // Students can only cancel their own bookings
     if (booking.student_id !== userId) {
-      const error: any = new Error(
+      throw new AppError(
         "You don't have permission to update this booking",
+        403,
       );
-      error.statusCode = 403;
-      throw error;
     }
     if (status !== "cancelled") {
-      const error: any = new Error("Students can only cancel bookings");
-      error.statusCode = 400;
-      throw error;
+      throw new AppError("Students can only cancel bookings", 400);
     }
   } else if (userRole === "teacher") {
-    // Tutors can mark bookings as completed or cancelled
     if (booking.bookingTutor.user_id !== userId) {
-      const error: any = new Error(
+      throw new AppError(
         "You don't have permission to update this booking",
+        403,
       );
-      error.statusCode = 403;
-      throw error;
     }
     if (!["completed", "cancelled"].includes(status)) {
-      const error: any = new Error(
+      throw new AppError(
         "Tutors can only mark bookings as completed or cancelled",
+        400,
       );
-      error.statusCode = 400;
-      throw error;
     }
   }
-  // Admin can update any booking status
 
   const updatedBooking = await prisma.booking.update({
     where: { id: bookingId },

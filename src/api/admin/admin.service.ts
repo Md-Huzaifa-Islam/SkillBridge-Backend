@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { UsersRole } from "../../generated/prisma/enums";
+import { AppError } from "../../lib/AppError";
 
 interface UpdateUserStatusData {
   is_banned?: boolean;
@@ -90,23 +91,18 @@ export class AdminService {
 
   static async updateUserStatus(userId: string, data: UpdateUserStatusData) {
     try {
-      // Check if user exists
       const user = await prisma.user.findUnique({
         where: { id: userId },
       });
 
       if (!user) {
-        const error: any = new Error("User not found");
-        error.statusCode = 404;
-        throw error;
+        throw new AppError("User not found", 404);
       }
 
-      // Build update data
       const updateData: any = {};
       if (data.is_banned !== undefined) updateData.is_banned = data.is_banned;
       if (data.role !== undefined) updateData.role = data.role;
 
-      // Update user status
       const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: updateData,
