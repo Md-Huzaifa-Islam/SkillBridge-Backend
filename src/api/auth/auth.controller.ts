@@ -3,6 +3,7 @@ import { UsersRole } from "../../generated/prisma/enums";
 import { AuthServices } from "./app.service";
 import { catchAsync } from "../../lib/asyncHandler";
 import { AppError } from "../../lib/AppError";
+import { prisma } from "../../lib/prisma";
 
 const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, role = UsersRole.student } = req.body;
@@ -47,15 +48,20 @@ const registerUser = catchAsync(async (req: Request, res: Response) => {
 const loginUser = catchAsync(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
+  // Check if the user is banned before authenticating
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { is_banned: true },
+  });
+
+  if (existingUser?.is_banned) {
+    throw new AppError("Your account has been suspended", 403);
+  }
+
   const result = await AuthServices.loginUser({ password, email });
 
   if (!result) {
     throw new AppError("Invalid credentials", 401);
-  }
-
-  const setCookieHeader = result.headers.get("set-cookie");
-  if (setCookieHeader) {
-    res.setHeader("Set-Cookie", setCookieHeader);
   }
 
   const data = await result.json();
@@ -68,14 +74,25 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     );
   }
 
-  let sessionToken = null;
-  if (setCookieHeader) {
-    const tokenMatch = setCookieHeader.match(
-      /skill_bridge\.session_token=([^;]+)/,
-    );
-    if (tokenMatch) {
-      sessionToken = tokenMatch[1];
+  // Extract session token from the response body (most reliable).
+  // better-auth signInEmail returns { token, user, redirect } at top level.
+  // Fallback: try parsing the Set-Cookie header.
+  let sessionToken: string | null = data?.token || null;
+
+  if (!sessionToken) {
+    const setCookieHeader = result.headers.get("set-cookie");
+    if (setCookieHeader) {
+      const tokenMatch = setCookieHeader.match(
+        /skill_bridge\.session_token=([^;]+)/,
+      );
+      if (tokenMatch) {
+        sessionToken = tokenMatch[1];
+      }
     }
+  }
+
+  if (!sessionToken) {
+    throw new AppError("Login succeeded but failed to create session", 500);
   }
 
   res.status(200).json({

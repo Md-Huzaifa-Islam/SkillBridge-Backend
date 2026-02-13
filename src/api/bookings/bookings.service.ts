@@ -46,7 +46,7 @@ const createBooking = async (data: CreateBookingInput) => {
       tutor_id,
       start_time: new Date(`1970-01-01T${start_time}`),
       end_time: new Date(`1970-01-01T${end_time}`),
-      date: new Date(`1970-01-01T${date}`),
+      date: new Date(date),
       total_price,
       status: "confirm",
     },

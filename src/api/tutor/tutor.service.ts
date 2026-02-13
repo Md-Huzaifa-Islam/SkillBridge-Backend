@@ -117,11 +117,10 @@ export class TutorService {
 
       if (!tutorProfile) {
         if (!data.category_id || !data.price_per_hour) {
-          const error: any = new Error(
+          throw new AppError(
             "category_id and price_per_hour are required to create a tutor profile",
+            400,
           );
-          error.statusCode = 400;
-          throw error;
         }
 
         const category = await prisma.category.findUnique({
@@ -129,9 +128,7 @@ export class TutorService {
         });
 
         if (!category) {
-          const error: any = new Error("Category not found");
-          error.statusCode = 404;
-          throw error;
+          throw new AppError("Category not found", 404);
         }
 
         tutorProfile = await prisma.tutorProfile.create({
@@ -163,9 +160,7 @@ export class TutorService {
         });
 
         if (!category) {
-          const error: any = new Error("Category not found");
-          error.statusCode = 404;
-          throw error;
+          throw new AppError("Category not found", 404);
         }
       }
 
@@ -210,9 +205,7 @@ export class TutorService {
       });
 
       if (!tutorProfile) {
-        const error: any = new Error("Tutor profile not found for this user");
-        error.statusCode = 404;
-        throw error;
+        throw new AppError("Tutor profile not found for this user", 404);
       }
 
       await prisma.available.deleteMany({

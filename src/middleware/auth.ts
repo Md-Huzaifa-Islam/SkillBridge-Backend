@@ -9,25 +9,30 @@ export const auth = (...roles: string[]) => {
       });
 
       if (!session) {
-        return res
-          .status(401)
-          .json({ message: "Unauthorized: No valid session found" });
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized: No valid session found",
+        });
       }
 
       if (!session.user) {
-        return res
-          .status(401)
-          .json({ message: "Unauthorized: User not found" });
-      }
-
-      if (!session.user.role) {
-        return res.status(403).json({
-          message:
-            "Forbidden: You do not have permission to access this resource",
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized: User not found",
         });
       }
-      if (!roles.includes(session.user.role)) {
+
+      // Block banned users from accessing any protected resource
+      if (session.user.is_banned) {
         return res.status(403).json({
+          success: false,
+          message: "Your account has been suspended",
+        });
+      }
+
+      if (!session.user.role || !roles.includes(session.user.role)) {
+        return res.status(403).json({
+          success: false,
           message:
             "Forbidden: You do not have permission to access this resource",
         });
@@ -38,7 +43,10 @@ export const auth = (...roles: string[]) => {
       next();
     } catch (error) {
       console.error(error);
-      return res.status(401).json({ message: "Authentication failed" });
+      return res.status(401).json({
+        success: false,
+        message: "Authentication failed",
+      });
     }
   };
 };

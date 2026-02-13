@@ -169,7 +169,7 @@ var auth = betterAuth({
         defaultValue: UsersRole.student
       },
       is_banned: {
-        type: "string",
+        type: "boolean",
         required: false,
         defaultValue: false
       }
@@ -307,13 +307,16 @@ var registerUser2 = catchAsync(async (req, res) => {
 });
 var loginUser2 = catchAsync(async (req, res) => {
   const { email, password } = req.body;
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { is_banned: true }
+  });
+  if (existingUser?.is_banned) {
+    throw new AppError("Your account has been suspended", 403);
+  }
   const result = await AuthServices.loginUser({ password, email });
   if (!result) {
     throw new AppError("Invalid credentials", 401);
-  }
-  const setCookieHeader = result.headers.get("set-cookie");
-  if (setCookieHeader) {
-    res.setHeader("Set-Cookie", setCookieHeader);
   }
   const data = await result.json();
   const isSuccess = result.status >= 200 && result.status < 300;
@@ -323,14 +326,20 @@ var loginUser2 = catchAsync(async (req, res) => {
       result.status
     );
   }
-  let sessionToken = null;
-  if (setCookieHeader) {
-    const tokenMatch = setCookieHeader.match(
-      /skill_bridge\.session_token=([^;]+)/
-    );
-    if (tokenMatch) {
-      sessionToken = tokenMatch[1];
+  let sessionToken = data?.token || null;
+  if (!sessionToken) {
+    const setCookieHeader = result.headers.get("set-cookie");
+    if (setCookieHeader) {
+      const tokenMatch = setCookieHeader.match(
+        /skill_bridge\.session_token=([^;]+)/
+      );
+      if (tokenMatch) {
+        sessionToken = tokenMatch[1];
+      }
     }
+  }
+  if (!sessionToken) {
+    throw new AppError("Login succeeded but failed to create session", 500);
   }
   res.status(200).json({
     success: true,
@@ -414,18 +423,26 @@ var auth2 = (...roles) => {
         headers: req.headers
       });
       if (!session) {
-        return res.status(401).json({ message: "Unauthorized: No valid session found" });
-      }
-      if (!session.user) {
-        return res.status(401).json({ message: "Unauthorized: User not found" });
-      }
-      if (!session.user.role) {
-        return res.status(403).json({
-          message: "Forbidden: You do not have permission to access this resource"
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized: No valid session found"
         });
       }
-      if (!roles.includes(session.user.role)) {
+      if (!session.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized: User not found"
+        });
+      }
+      if (session.user.is_banned) {
         return res.status(403).json({
+          success: false,
+          message: "Your account has been suspended"
+        });
+      }
+      if (!session.user.role || !roles.includes(session.user.role)) {
+        return res.status(403).json({
+          success: false,
           message: "Forbidden: You do not have permission to access this resource"
         });
       }
@@ -433,7 +450,10 @@ var auth2 = (...roles) => {
       next();
     } catch (error) {
       console.error(error);
-      return res.status(401).json({ message: "Authentication failed" });
+      return res.status(401).json({
+        success: false,
+        message: "Authentication failed"
+      });
     }
   };
 };
@@ -867,7 +887,7 @@ var createBooking = async (data) => {
       tutor_id,
       start_time: /* @__PURE__ */ new Date(`1970-01-01T${start_time}`),
       end_time: /* @__PURE__ */ new Date(`1970-01-01T${end_time}`),
-      date: /* @__PURE__ */ new Date(`1970-01-01T${date}`),
+      date: new Date(date),
       total_price,
       status: "confirm"
     },
@@ -1257,19 +1277,16 @@ var TutorService = class {
       });
       if (!tutorProfile) {
         if (!data.category_id || !data.price_per_hour) {
-          const error = new Error(
-            "category_id and price_per_hour are required to create a tutor profile"
+          throw new AppError(
+            "category_id and price_per_hour are required to create a tutor profile",
+            400
           );
-          error.statusCode = 400;
-          throw error;
         }
         const category = await prisma.category.findUnique({
           where: { id: data.category_id }
         });
         if (!category) {
-          const error = new Error("Category not found");
-          error.statusCode = 404;
-          throw error;
+          throw new AppError("Category not found", 404);
         }
         tutorProfile = await prisma.tutorProfile.create({
           data: {
@@ -1297,9 +1314,7 @@ var TutorService = class {
           where: { id: data.category_id }
         });
         if (!category) {
-          const error = new Error("Category not found");
-          error.statusCode = 404;
-          throw error;
+          throw new AppError("Category not found", 404);
         }
       }
       const updateData = {};
@@ -1336,9 +1351,7 @@ var TutorService = class {
         where: { user_id: userId }
       });
       if (!tutorProfile) {
-        const error = new Error("Tutor profile not found for this user");
-        error.statusCode = 404;
-        throw error;
+        throw new AppError("Tutor profile not found for this user", 404);
       }
       await prisma.available.deleteMany({
         where: { tutor_id: tutorProfile.id }
@@ -1779,9 +1792,18 @@ var notFoundHandler = (req, res, _next) => {
 
 // src/app.ts
 var app = express();
+var allowedOrigins = [];
+if (config.app_url) allowedOrigins.push(config.app_url);
+if (config.better_url && config.better_url !== config.app_url) {
+  allowedOrigins.push(config.better_url);
+}
 app.use(
   cors({
-    origin: config.app_url,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true
   })
 );

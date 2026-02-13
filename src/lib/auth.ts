@@ -56,7 +56,7 @@ export const auth = betterAuth({
         defaultValue: UsersRole.student,
       },
       is_banned: {
-        type: "string",
+        type: "boolean",
         required: false,
         defaultValue: false,
       },
