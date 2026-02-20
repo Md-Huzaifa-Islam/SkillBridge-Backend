@@ -1,8 +1,8 @@
-import express, { Request, Response } from "express";
 import cors from "cors";
+import express, { Request, Response } from "express";
 import { config } from "./config/config";
-import { notFoundHandler } from "./middleware/not-found.middleware";
 import { errorHandler } from "./middleware/error.middleware";
+import { notFoundHandler } from "./middleware/not-found.middleware";
 const app = express();
 
 //middlewares
@@ -16,7 +16,7 @@ app.use(
 );
 
 // root route
-app.get("/", (req: Request, res: Response) => {
+app.get("/", async (req: Request, res: Response) => {
   res.send("This is the backend of skill bridge");
 });
 
