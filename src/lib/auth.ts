@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 import { config } from "../config/config";
 import { sendMail } from "../handlers/sendMailHandlers";
 import { verifyHtmlGenerate } from "../templates/htmlTemplate";
+import { UserRole, UserStatus } from "../../generated/prisma/enums";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -36,6 +37,20 @@ export const auth = betterAuth({
       } catch (error) {
         console.error("Failed to send verification email:", error);
       }
+    },
+  },
+  user: {
+    additionalFields: {
+      status: {
+        type: "string",
+        required: false,
+        defaultValue: UserStatus.active,
+      },
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: UserRole.student,
+      },
     },
   },
 });
