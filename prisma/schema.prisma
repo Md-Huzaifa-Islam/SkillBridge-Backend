@@ -32,9 +32,11 @@ model User {
 
   sessions Session[]
   accounts Account[]
+  bookings Booking[]
+  reviews  Review[]
 
   @@unique([email])
-  @@map("user")
+  @@map("users")
 }
 
 model Session {
@@ -83,4 +85,80 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// extra models by me 
+
+model Category {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  tutorProfiles TutorProfile[]
+
+  @@map("categories")
+}
+
+enum WeekDay {
+  saturday  @map("SATURDAY")
+  sunday    @map("SUNDAY")
+  monday    @map("MONDAY")
+  tuesday   @map("TUESDAY")
+  wednesday @map("WEDNESDAY")
+  thursday  @map("THURSDAY")
+  friday    @map("FRIDAY")
+}
+
+model Available {
+  id      String  @id @default(uuid())
+  day     WeekDay @default(saturday)
+  tutorId String
+
+  tutor    TutorProfile @relation(fields: [tutorId], references: [id])
+  bookings Booking[]
+
+  @@map("availabilities")
+}
+
+model TutorProfile {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  startTime    DateTime @db.Time()
+  endTime      DateTime @db.Time()
+  pricePerHour Int
+  active       Boolean  @default(true)
+  categoryId   String
+
+  category       Category    @relation(fields: [categoryId], references: [id])
+  availabilities Available[]
+  bookings       Booking[]
+
+  @@map("tutorprofiles")
+}
+
+model Booking {
+  id          String   @id @default(uuid())
+  tutorId     String
+  studentId   String
+  availableId String
+  date        DateTime @db.Date
+  startTime   DateTime @db.Time()
+  endTime     DateTime @db.Time()
+
+  tutor         TutorProfile @relation(fields: [tutorId], references: [id])
+  student       User         @relation(fields: [studentId], references: [id])
+  availableDate Available    @relation(fields: [availableId], references: [id])
+  reviews       Review?
+
+  @@map("bookings")
+}
+
+model Review {
+  id        String  @id @default(uuid())
+  rating    Int     @default(0) @db.SmallInt
+  review    String?
+  bookingId String  @unique
+  studentId String
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  student User    @relation(fields: [studentId], references: [id])
 }
