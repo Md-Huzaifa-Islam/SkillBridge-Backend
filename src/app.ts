@@ -1,9 +1,9 @@
 import cors from "cors";
-import express, { Request, Response } from "express";
+import express, { Application, Request, Response } from "express";
 import { config } from "./config/config";
 import { errorHandler } from "./middleware/error.middleware";
 import { notFoundHandler } from "./middleware/not-found.middleware";
-const app = express();
+const app: Application = express();
 
 //middlewares
 
@@ -14,6 +14,9 @@ app.use(
     credentials: true,
   }),
 );
+
+// json perser
+app.use(express.json());
 
 // root route
 app.get("/", async (req: Request, res: Response) => {
