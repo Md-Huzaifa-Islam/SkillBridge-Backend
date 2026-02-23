@@ -65,6 +65,28 @@ const getBookingDetails = async (id: string) => {
       updatedAt: true,
       createdAt: true,
       status: true,
+
+      tutor: {
+        select: {
+          title: true,
+          description: true,
+          category: {
+            select: {
+              name: true,
+              id: true,
+            },
+          },
+        },
+      },
+
+      student: {
+        select: {
+          name: true,
+          email: true,
+          role: true,
+          status: true,
+        },
+      },
     },
   });
 };
