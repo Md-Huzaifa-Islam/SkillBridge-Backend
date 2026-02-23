@@ -63,18 +63,9 @@ const deleteReviews = async (reviewId: string) => {
   });
 };
 
-const getBooking = async (id: string) => {
-  return await prisma.booking.findUnique({
-    where: {
-      id,
-    },
-  });
-};
-
 export const ReviewsServices = {
   getReviews,
   createReviews,
   updateReviews,
   deleteReviews,
-  getBooking,
 };

@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { ReviewsServices } from "./reviews.service";
 import { sendResponse } from "../../../middleware/response.middleware";
 import { BookingStatus } from "../../../../generated/prisma/enums";
+import { BookingsServices } from "../bookings/bookings.service";
 
 const getReviews = async (
   req: Request<{ id: string }>,
@@ -38,7 +39,7 @@ const createReviews = async (
       throw new Error("ID is missing.");
     }
 
-    const booking = await ReviewsServices.getBooking(id);
+    const booking = await BookingsServices.getABooking(id);
 
     if (!booking) {
       res.status(404);
@@ -87,7 +88,7 @@ const updateReviews = async (
       throw new Error("Review and rating both are missing.");
     }
 
-    const booking = await ReviewsServices.getBooking(id);
+    const booking = await BookingsServices.getABooking(id);
 
     if (booking?.studentId != req.user?.id) {
       res.status(403);

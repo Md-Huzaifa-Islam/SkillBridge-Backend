@@ -10,10 +10,6 @@ const getCategories = async (
   try {
     const result = await CategoriesServices.getCategories();
     sendResponse(res, { message: "All category fetched", data: result });
-    if (true) {
-      res.status(200);
-      throw new Error("This is template");
-    }
   } catch (error: any) {
     next(error);
   }
@@ -67,7 +63,7 @@ const updateCategory = async (
       res.status(409);
       throw new Error("Category name is already taken.");
     }
-    const result = await CategoriesServices.updateCategory({ name, id });
+    await CategoriesServices.updateCategory({ name, id });
 
     sendResponse(res, { message: "Category name updated successfully." });
   } catch (error: any) {
@@ -88,7 +84,7 @@ const deleteCategory = async (
       throw new Error("ID is missing.");
     }
 
-    const result = await CategoriesServices.deleteCategory(id);
+    await CategoriesServices.deleteCategory(id);
     sendResponse(res, { message: "Category deleted successfully." });
   } catch (error: any) {
     next(error);

@@ -159,6 +159,7 @@ model Booking {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   status      BookingStatus @default(confirmed)
+  totalPrice  Int
 
   tutor         TutorProfile @relation(fields: [tutorId], references: [id])
   student       User         @relation(fields: [studentId], references: [id])
