@@ -1,11 +1,15 @@
 import { NextFunction, Request, Response } from "express";
+import { CategoriesServices } from "./categories.service";
+import { sendResponse } from "../../../middleware/response.middleware";
 
-const createCategories = async (
+const getCategories = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
+    const result = await CategoriesServices.getCategories();
+    sendResponse(res, { message: "All category fetched", data: result });
     if (true) {
       res.status(200);
       throw new Error("This is template");
@@ -15,6 +19,85 @@ const createCategories = async (
   }
 };
 
+const createCategory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const name = req.body?.name?.trim();
+    if (!name) {
+      res.status(400);
+      throw new Error("Category name is required.");
+    }
+    const existing = await CategoriesServices.getCategoryByName(name);
+
+    if (existing?.id) {
+      res.status(409);
+      throw new Error("Category name is already taken.");
+    }
+
+    const result = await CategoriesServices.createCategory(name);
+    sendResponse(res, { message: "Category created successfully." }, 201);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+const updateCategory = async (
+  req: Request<{ id: string; name: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const name = req.body?.name?.trim();
+    const id = req.params?.id;
+
+    if (!id) {
+      res.status(400);
+      throw new Error("ID is missing.");
+    }
+    if (!name) {
+      res.status(400);
+      throw new Error("Category name is required.");
+    }
+    const existing = await CategoriesServices.getCategoryByName(name);
+
+    if (existing?.id) {
+      res.status(409);
+      throw new Error("Category name is already taken.");
+    }
+    const result = await CategoriesServices.updateCategory({ name, id });
+
+    sendResponse(res, { message: "Category name updated successfully." });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+const deleteCategory = async (
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const id = req.params?.id;
+
+    if (!id) {
+      res.status(400);
+      throw new Error("ID is missing.");
+    }
+
+    const result = await CategoriesServices.deleteCategory(id);
+    sendResponse(res, { message: "Category deleted successfully." });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
 export const CategoriesControllers = {
-  createCategories,
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
 };
