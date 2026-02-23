@@ -30,10 +30,10 @@ model User {
   role   UserRole   @default(student)
   status UserStatus @default(active)
 
-  sessions Session[]
-  accounts Account[]
-  bookings Booking[]
-  reviews  Review[]
+  sessions      Session[]
+  accounts      Account[]
+  bookings      Booking[]
+  tutorProfiles TutorProfile?
 
   @@unique([email])
   @@map("users")
@@ -92,6 +92,8 @@ model Verification {
 model Category {
   id            String         @id @default(uuid())
   name          String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   tutorProfiles TutorProfile[]
 
   @@map("categories")
@@ -108,12 +110,13 @@ enum WeekDay {
 }
 
 model Available {
-  id      String  @id @default(uuid())
-  day     WeekDay @default(saturday)
-  tutorId String
-
-  tutor    TutorProfile @relation(fields: [tutorId], references: [id])
-  bookings Booking[]
+  id        String       @id @default(uuid())
+  day       WeekDay      @default(saturday)
+  tutorId   String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  tutor     TutorProfile @relation(fields: [tutorId], references: [id])
+  bookings  Booking[]
 
   @@map("availabilities")
 }
@@ -127,7 +130,11 @@ model TutorProfile {
   pricePerHour Int
   active       Boolean  @default(true)
   categoryId   String
+  userId       String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
+  user           User        @relation(fields: [userId], references: [id])
   category       Category    @relation(fields: [categoryId], references: [id])
   availabilities Available[]
   bookings       Booking[]
@@ -135,14 +142,23 @@ model TutorProfile {
   @@map("tutorprofiles")
 }
 
+enum BookingStatus {
+  confirmed @map("CONFIRMED")
+  completed @map("COMPLETED")
+  cancelled @map("CANCELLED")
+}
+
 model Booking {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   tutorId     String
   studentId   String
   availableId String
-  date        DateTime @db.Date
-  startTime   DateTime @db.Time()
-  endTime     DateTime @db.Time()
+  date        DateTime      @db.Date
+  startTime   DateTime      @db.Time()
+  endTime     DateTime      @db.Time()
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  status      BookingStatus @default(confirmed)
 
   tutor         TutorProfile @relation(fields: [tutorId], references: [id])
   student       User         @relation(fields: [studentId], references: [id])
@@ -153,12 +169,14 @@ model Booking {
 }
 
 model Review {
-  id        String  @id @default(uuid())
-  rating    Int     @default(0) @db.SmallInt
+  id        String   @id @default(uuid())
+  rating    Int      @default(0) @db.SmallInt
   review    String?
-  bookingId String  @unique
-  studentId String
+  bookingId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   booking Booking @relation(fields: [bookingId], references: [id])
-  student User    @relation(fields: [studentId], references: [id])
+
+  @@map("reviews")
 }

@@ -6,7 +6,6 @@ import { UserRole } from "../../../../generated/prisma/enums";
 const router: RouterType = Router();
 
 // get all categories
-
 router.get("/", CategoriesControllers.getCategories);
 
 // create route body{name}
