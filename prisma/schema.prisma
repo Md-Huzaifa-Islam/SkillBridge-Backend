@@ -118,6 +118,7 @@ model Available {
   tutor     TutorProfile @relation(fields: [tutorId], references: [id])
   bookings  Booking[]
 
+  @@unique([tutorId, day])
   @@map("availabilities")
 }
 
