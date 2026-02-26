@@ -11,7 +11,7 @@ export const sendResponse = <T>(
   { success = true, message = "", data = null }: ResponseData<T>,
   statusCode: number = 200,
 ) => {
-  res.status(statusCode).json({
+  return res.status(statusCode).json({
     success,
     message,
     data,

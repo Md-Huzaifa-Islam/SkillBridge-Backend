@@ -1,9 +1,21 @@
-import { toNodeHandler } from "better-auth/node";
-import { Router, type Router as RouterType } from "express";
-import { sanitizeRegistration } from "../../../middleware/sanitizeRegister.middleware";
+import { Router } from "express";
+import { AuthControllers } from "./auth.controller";
+import { validate } from "../../../middleware/validate.middleware";
+import {
+  registerSchema,
+  loginSchema,
+  verifyEmailSchema,
+} from "./auth.validation";
 
-const router: RouterType = Router();
+const router = Router();
 
-router.use("/:splat", sanitizeRegistration, toNodeHandler);
+router.post("/register", validate(registerSchema), AuthControllers.register);
+router.post("/login", validate(loginSchema), AuthControllers.login);
+router.get("/me", AuthControllers.me);
+router.post(
+  "/verify",
+  validate(verifyEmailSchema),
+  AuthControllers.verifyEmail,
+);
 
 export { router as AuthRoutes };

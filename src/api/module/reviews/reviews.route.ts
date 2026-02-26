@@ -1,26 +1,38 @@
 import { Router, type Router as RouterType } from "express";
 import { ReviewsControllers } from "./reviews.controller";
-import { auth } from "../../../middleware/auth";
+import { authenticate } from "../../../middleware/jwtAuth";
 import { UserRole } from "../../../../generated/prisma/enums";
+import { validate } from "../../../middleware/validate.middleware";
+import { reviewSchema } from "../validation/zodSchemas";
 
 const router: RouterType = Router();
 
 // get ratings of a tutor profile
 router.get(
   "/:id",
-  auth(UserRole.admin, UserRole.student, UserRole.tutor),
+  authenticate(UserRole.admin, UserRole.student, UserRole.tutor),
   ReviewsControllers.getReviews,
 );
 
 // create a rating
-router.post("/:id", auth(UserRole.student), ReviewsControllers.createReviews);
+router.post(
+  ":id",
+  authenticate(UserRole.student),
+  validate(reviewSchema),
+  ReviewsControllers.createReviews,
+);
 
 // update a rating
-router.patch("/:id", auth(UserRole.student), ReviewsControllers.updateReviews);
+router.patch(
+  ":id",
+  authenticate(UserRole.student),
+  validate(reviewSchema),
+  ReviewsControllers.updateReviews,
+);
 
 router.delete(
   "/:id",
-  auth(UserRole.admin, UserRole.student),
+  authenticate(UserRole.admin, UserRole.student),
   ReviewsControllers.deleteReviews,
 );
 

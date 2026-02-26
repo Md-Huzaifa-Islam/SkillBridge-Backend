@@ -1,18 +1,19 @@
 import { NextFunction, Request, Response } from "express";
 import { UserRole } from "../../generated/prisma/enums";
 
-export const sanitizeRegistration = async (
+export const sanitizeRegistration = (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
+    // Use req.path instead of req.baseUrl
     const haveToCheck =
-      req.baseUrl === "/api/auth/sign-up/email" && req.method === "POST";
+      req.path === "/api/auth/sign-up/email" && req.method === "POST";
+
     if (haveToCheck) {
       if (req.body.role && req.body.role === UserRole.admin) {
-        res.status(403);
-        throw new Error("You can't create admin role");
+        return res.status(403).json({ error: "You can't create admin role" });
       }
     }
     next();
