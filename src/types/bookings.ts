@@ -1,7 +1,7 @@
 import { BookingStatus } from "../../generated/prisma/enums";
 
 export type CreateBookingParams = {
-  tutorId: string;
+  tutorId: string; // This is now the tutorProfileId
   studentId: string;
   availableId: string;
   date: Date;

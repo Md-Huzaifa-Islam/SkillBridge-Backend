@@ -36,6 +36,10 @@ const createReviews = async (params: CreateReviewParams) => {
   });
 };
 
+const getReviewByBookingId = async (bookingId: string) => {
+  return await prisma.review.findUnique({ where: { bookingId } });
+};
+
 const updateReviews = async (params: UpdateReviewParams) => {
   const { reviewId, rating, review } = params;
 
@@ -63,9 +67,18 @@ const deleteReviews = async (reviewId: string) => {
   });
 };
 
+const getReviewById = async (reviewId: string) => {
+  return await prisma.review.findUnique({
+    where: { id: reviewId },
+    include: { booking: { select: { studentId: true } } },
+  });
+};
+
 export const ReviewsServices = {
   getReviews,
   createReviews,
   updateReviews,
   deleteReviews,
+  getReviewById,
+  getReviewByBookingId,
 };

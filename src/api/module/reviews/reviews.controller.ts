@@ -27,19 +27,20 @@ const getReviews = async (
 };
 
 const createReviews = async (
-  req: Request<{ id: string }>,
+  req: Request<{ id?: string }>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const id = req.params?.id;
-    const { review, rating = 0 } = req.body;
-    if (!id) {
+    const paramId = req.params?.id;
+    const { bookingId: bodyBookingId, review, rating = 0 } = req.body as any;
+    const bookingId = paramId || bodyBookingId;
+    if (!bookingId) {
       res.status(400);
-      throw new Error("ID is missing.");
+      throw new Error("Booking ID is missing.");
     }
 
-    const booking = await BookingsServices.getABooking(id);
+    const booking = await BookingsServices.getABooking(bookingId);
 
     if (!booking) {
       res.status(404);
@@ -56,11 +57,15 @@ const createReviews = async (
       throw new Error("Cannot create a review. Session is not completed.");
     }
 
-    await ReviewsServices.createReviews({
-      bookingId: id,
-      rating,
-      review,
-    });
+    // Prevent duplicate review creation for the same booking
+    const existingReview =
+      await ReviewsServices.getReviewByBookingId(bookingId);
+    if (existingReview) {
+      res.status(409);
+      throw new Error("Review already exists for this booking.");
+    }
+
+    await ReviewsServices.createReviews({ bookingId, rating, review });
 
     sendResponse(res, { message: "Review created successfully." }, 201);
   } catch (error: any) {
@@ -81,29 +86,32 @@ const updateReviews = async (
       throw new Error("ID is missing.");
     }
 
-    const { rating, review } = req.body;
+    const { rating, review } = req.body as any;
 
-    if (!rating && !review) {
+    if (rating === undefined && review === undefined) {
       res.status(400);
       throw new Error("Review and rating both are missing.");
     }
 
-    const booking = await BookingsServices.getABooking(id);
+    const existing = await ReviewsServices.getReviewById(id);
 
-    if (booking?.studentId != req.user?.id) {
-      res.status(403);
-      throw new Error("You can't create this user's booking.");
+    if (!existing) {
+      res.status(404);
+      throw new Error("Review not found.");
     }
 
-    const result = await ReviewsServices.updateReviews({
+    if (existing.booking?.studentId !== req.user?.id) {
+      res.status(403);
+      throw new Error("You are not allowed to update this review.");
+    }
+
+    await ReviewsServices.updateReviews({
       rating,
       review,
       reviewId: id,
     });
-    if (true) {
-      res.status(200);
-      throw new Error("This is template");
-    }
+
+    sendResponse(res, { message: "Review updated successfully." });
   } catch (error: any) {
     next(error);
   }

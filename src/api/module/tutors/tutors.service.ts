@@ -1,3 +1,32 @@
+// Get tutor profile by userId (for /me endpoint)
+const getTutorProfileByUserId = async (userId: string) => {
+  return await prisma.tutorProfile.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      active: true,
+      title: true,
+      description: true,
+      startTime: true,
+      endTime: true,
+      pricePerHour: true,
+      createdAt: true,
+      updatedAt: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+      availabilities: {
+        select: {
+          day: true,
+          id: true,
+        },
+      },
+    },
+  });
+};
 import { WeekDay } from "../../../../generated/prisma/enums";
 import { prisma } from "../../../lib/prisma";
 import {
@@ -130,25 +159,19 @@ const updateSlotTutor = async ({
   id: string;
   days: WeekDay[];
 }) => {
-  const data = days.map((d) => ({
-    tutorId: id,
-    day: d,
-  }));
+  const data = days.map((d) => ({ tutorId: id, day: d }));
 
-  return await prisma.$transaction([
-    prisma.available.deleteMany({
-      where: { tutorId: id },
-    }),
-    prisma.available.createMany({
-      data,
-    }),
-  ]);
+  // Instead of deleting existing availabilities (which can fail due to FK
+  // references from bookings), we'll create any missing availabilities and
+  // skip duplicates. This avoids delete-related foreign key violations.
+  return await prisma.available.createMany({ data, skipDuplicates: true });
 };
 
 export const TutorsServices = {
   createTutor,
   getAllTutor,
   getATutorDetails,
+  getTutorProfileByUserId,
   updateTutor,
   updateAvailable,
   getRatings,

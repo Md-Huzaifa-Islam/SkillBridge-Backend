@@ -3,9 +3,19 @@ import { TutorsControllers } from "./tutors.controller";
 import { authenticate } from "../../../middleware/jwtAuth";
 import { UserRole } from "../../../../generated/prisma/enums";
 import { validate } from "../../../middleware/validate.middleware";
-import { tutorProfileSchema } from "../validation/zodSchemas";
+import {
+  tutorProfileSchema,
+  tutorProfileUpdateSchema,
+} from "../validation/zodSchemas";
 
 const router: RouterType = Router();
+
+// get self tutor profile (tutor)
+router.get(
+  "/me",
+  authenticate(UserRole.tutor),
+  TutorsControllers.getSelfTutorProfile,
+);
 
 // get all tutors with filters (public)
 router.get("/", TutorsControllers.getAllTutor);
@@ -13,10 +23,10 @@ router.get("/", TutorsControllers.getAllTutor);
 // get a tutor details (public)
 router.get("/:id", TutorsControllers.getATutorDetails);
 
-// view rating or review route of a tutor (tutor)
+// view rating or review route of a tutor (tutor, student, admin)
 router.get(
   "/rating/:id",
-  authenticate(UserRole.tutor),
+  authenticate(UserRole.tutor, UserRole.student, UserRole.admin),
   TutorsControllers.getRatings,
 );
 
@@ -28,17 +38,17 @@ router.post(
   TutorsControllers.createTutor,
 );
 
-// update a tutor profile (tutor)
+// update self tutor profile (tutor)
 router.patch(
-  ":id",
+  "/me",
   authenticate(UserRole.tutor),
-  validate(tutorProfileSchema),
+  validate(tutorProfileUpdateSchema),
   TutorsControllers.updateTutor,
 );
 
-// active or deactivate a tutor profile (tutor)
+// activate or deactivate self tutor profile (tutor)
 router.patch(
-  "/active/:id",
+  "/active/me",
   authenticate(UserRole.tutor),
   TutorsControllers.updateAvailable,
 );

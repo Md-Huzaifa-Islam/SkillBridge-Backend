@@ -5,7 +5,7 @@ export const categorySchema = z.object({
 });
 
 export const bookingSchema = z.object({
-  tutor_id: z.string(),
+  tutor_profile_id: z.string(),
   available_id: z.string(),
   date_str: z.string(),
   start_time: z.string(),
@@ -17,6 +17,8 @@ export const reviewSchema = z.object({
   rating: z.number().min(1).max(5),
 });
 
+export const reviewUpdateSchema = reviewSchema.partial();
+
 export const tutorProfileSchema = z.object({
   categoryId: z.string(),
   end_time: z.string(),
@@ -25,3 +27,5 @@ export const tutorProfileSchema = z.object({
   title: z.string().min(2),
   description: z.string().optional(),
 });
+
+export const tutorProfileUpdateSchema = tutorProfileSchema.partial();

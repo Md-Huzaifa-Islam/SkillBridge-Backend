@@ -40,10 +40,20 @@ const getCategoryByName = async (name: string) => {
   });
 };
 
+const getCategoryById = async (id: string) => {
+  return await prisma.category.findUnique({ where: { id } });
+};
+
+const countTutorProfilesByCategory = async (categoryId: string) => {
+  return await prisma.tutorProfile.count({ where: { categoryId } });
+};
+
 export const CategoriesServices = {
   getCategories,
   createCategory,
   updateCategory,
   deleteCategory,
   getCategoryByName,
+  getCategoryById,
+  countTutorProfilesByCategory,
 };

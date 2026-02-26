@@ -3,7 +3,7 @@ import { ReviewsControllers } from "./reviews.controller";
 import { authenticate } from "../../../middleware/jwtAuth";
 import { UserRole } from "../../../../generated/prisma/enums";
 import { validate } from "../../../middleware/validate.middleware";
-import { reviewSchema } from "../validation/zodSchemas";
+import { reviewSchema, reviewUpdateSchema } from "../validation/zodSchemas";
 
 const router: RouterType = Router();
 
@@ -16,7 +16,15 @@ router.get(
 
 // create a rating
 router.post(
-  ":id",
+  "/:id",
+  authenticate(UserRole.student),
+  validate(reviewSchema),
+  ReviewsControllers.createReviews,
+);
+
+// create a rating using body `bookingId`
+router.post(
+  "/",
   authenticate(UserRole.student),
   validate(reviewSchema),
   ReviewsControllers.createReviews,
@@ -24,9 +32,9 @@ router.post(
 
 // update a rating
 router.patch(
-  ":id",
+  "/:id",
   authenticate(UserRole.student),
-  validate(reviewSchema),
+  validate(reviewUpdateSchema),
   ReviewsControllers.updateReviews,
 );
 

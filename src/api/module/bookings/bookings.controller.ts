@@ -42,11 +42,12 @@ const createBooking = async (
   next: NextFunction,
 ) => {
   try {
-    const { tutor_id, available_id, date_str, start_time, end_time } = req.body;
+    const { tutor_profile_id, available_id, date_str, start_time, end_time } =
+      req.body;
 
-    if (!tutor_id) {
+    if (!tutor_profile_id) {
       res.status(400);
-      throw new Error("Selecting tutor is required.");
+      throw new Error("Selecting tutor profile is required.");
     }
 
     if (!available_id) {
@@ -85,7 +86,7 @@ const createBooking = async (
       endTime,
       startTime,
       studentId: req.user?.id!,
-      tutorId: tutor_id,
+      tutorId: tutor_profile_id,
       diffHour: diffHours,
     });
     sendResponse(res, { message: "Booking created successfully." }, 201);
@@ -143,9 +144,17 @@ const updateBookingStatus = async (
       throw new Error("Status is required.");
     }
     const booking = await BookingsServices.getABooking(id);
+    let tutorProfileId = null;
+    if (req.user?.role === UserRole.tutor) {
+      // Find tutor profile for this user
+      const profile = await import("../tutors/tutors.service").then((m) =>
+        m.TutorsServices.getTutorProfileByUserId(req.user?.id!),
+      );
+      tutorProfileId = profile?.id;
+    }
     const isAllowed =
       (status === BookingStatus.completed &&
-        booking?.tutorId === req.user?.id) ||
+        booking?.tutorId === tutorProfileId) ||
       (status === BookingStatus.cancelled &&
         booking?.studentId === req.user?.id);
 

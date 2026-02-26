@@ -1,3 +1,29 @@
+// Get the current tutor's own profile
+const getSelfTutorProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: user id missing." });
+    }
+    // Find tutor profile by userId
+    const result = await TutorsServices.getTutorProfileByUserId(userId);
+    if (!result) {
+      return res.status(404).json({ message: "Tutor profile not found." });
+    }
+    return sendResponse(res, {
+      message: "Tutor profile fetched successfully.",
+      data: result,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
 import { NextFunction, Request, Response } from "express";
 import { TutorsServices } from "./tutors.service";
 import { sendResponse } from "../../../middleware/response.middleware";
@@ -8,7 +34,20 @@ import { frontendTimeToBackendTime } from "../../../handlers/dateConvertHandler"
 
 const getAllTutor = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { page, size, sort_by, sort_order, category, search } = req.body;
+    const page =
+      typeof req.query.page === "string" ? req.query.page : undefined;
+    const size =
+      typeof req.query.size === "string" ? req.query.size : undefined;
+    const sort_by =
+      typeof req.query.sort_by === "string" ? req.query.sort_by : undefined;
+    const sort_order =
+      typeof req.query.sort_order === "string"
+        ? req.query.sort_order
+        : undefined;
+    const category =
+      typeof req.query.category === "string" ? req.query.category : undefined;
+    const search =
+      typeof req.query.search === "string" ? req.query.search : undefined;
     const { skip, take } = paginationHandler({ page, size });
     const { sortBy, sortOrder } = sortingHandler({ sort_by, sort_order });
     const result = await TutorsServices.getAllTutor({
@@ -59,19 +98,35 @@ const createTutor = async (req: Request, res: Response, next: NextFunction) => {
       title,
       description,
     } = req.body;
-    const userId = req.user?.id!;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: user id missing." });
+    }
+    // prevent duplicate tutor profile creation
+    const existingProfile =
+      await TutorsServices.getTutorProfileByUserId(userId);
+    if (existingProfile) {
+      res.status(409);
+      throw new Error("Tutor profile already exists for this user.");
+    }
     const { endTime, startTime } = frontendTimeToBackendTime({
       start_time,
       end_time,
     });
     if (!startTime || !endTime) {
-      res.status(400);
-      throw new Error("Start time and end time is required.");
+      return res
+        .status(400)
+        .json({ message: "Start time and end time is required." });
+    }
+    if (!categoryId || !title || !pricePerHour) {
+      return res.status(400).json({ message: "Missing required fields." });
     }
     const payload: CreateATutorParams = {
       categoryId,
       endTime,
-      pricePerHour,
+      pricePerHour: Number(pricePerHour),
       startTime,
       title,
       userId,
@@ -80,18 +135,20 @@ const createTutor = async (req: Request, res: Response, next: NextFunction) => {
       payload.description = description;
     }
     await TutorsServices.createTutor(payload);
-    sendResponse(res, { message: "Tutor created successfully." }, 201);
+    return sendResponse(res, { message: "Tutor created successfully." }, 201);
   } catch (error: any) {
     next(error);
   }
 };
 
-const updateTutor = async (
-  req: Request<{ id: string }>,
-  res: Response,
-  next: NextFunction,
-) => {
+const updateTutor = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: user id missing." });
+    }
     const {
       title,
       description,
@@ -101,31 +158,26 @@ const updateTutor = async (
       active,
       categoryId,
     } = req.body;
-    const userId = req.params.id;
-    if (!userId) {
-      res.status(400);
-      throw new Error("User id is required.");
-    }
     const params: UpdateTutorParams = { userId };
-    if (title) {
+    if (title !== undefined) {
       params.title = title;
     }
-    if (description) {
+    if (description !== undefined) {
       params.description = description;
     }
-    if (start_time) {
+    if (start_time !== undefined) {
       params.startTime = frontendTimeToBackendTime({ start_time }).startTime;
     }
-    if (end_time) {
+    if (end_time !== undefined) {
       params.endTime = frontendTimeToBackendTime({ end_time }).endTime;
     }
-    if (pricePerHour) {
+    if (pricePerHour !== undefined) {
       params.pricePerHour = Number(pricePerHour);
     }
-    if (active) {
-      params.active = active === "true";
+    if (active !== undefined) {
+      params.active = active === true || active === "true";
     }
-    if (categoryId) {
+    if (categoryId !== undefined) {
       params.categoryId = categoryId;
     }
     await TutorsServices.updateTutor(params);
@@ -157,18 +209,24 @@ const updateSlotTutor = async (
 };
 
 const updateAvailable = async (
-  req: Request<{ id: string }>,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.params;
-    if (!id) {
-      res.status(400);
-      throw new Error("User id is required.");
+    const userId = req.user?.id;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: user id missing." });
     }
-    const active = req.body?.active === "true";
-    await TutorsServices.updateAvailable({ id, active });
+    let active = req.body?.active;
+    if (typeof active === "string") {
+      active = active === "true";
+    } else {
+      active = Boolean(active);
+    }
+    await TutorsServices.updateAvailable({ id: userId, active });
     return sendResponse(res, { message: `Tutor status updated to ${active}` });
   } catch (error: any) {
     next(error);
@@ -200,6 +258,7 @@ export const TutorsControllers = {
   createTutor,
   getAllTutor,
   getATutorDetails,
+  getSelfTutorProfile,
   updateTutor,
   updateAvailable,
   getRatings,

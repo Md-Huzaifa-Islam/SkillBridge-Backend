@@ -11,7 +11,8 @@ const JWT_SECRET = config.jwt_secret;
 const JWT_EXPIRES_IN = "7d";
 
 const register = async (req: Request, res: Response) => {
-  const { name, email, password, role } = req.body;
+  let { name, email, password, role } = req.body;
+  if (!role) role = UserRole.student;
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing)
     return res.status(409).json({ message: "Email already registered" });

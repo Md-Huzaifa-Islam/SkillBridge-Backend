@@ -84,6 +84,15 @@ const deleteCategory = async (
       throw new Error("ID is missing.");
     }
 
+    // Prevent deleting a category that has tutor profiles referencing it.
+    const usage = await CategoriesServices.countTutorProfilesByCategory(id);
+    if (usage && usage > 0) {
+      res.status(400);
+      throw new Error(
+        "Category cannot be deleted while tutor profiles reference it.",
+      );
+    }
+
     await CategoriesServices.deleteCategory(id);
     sendResponse(res, { message: "Category deleted successfully." });
   } catch (error: any) {
