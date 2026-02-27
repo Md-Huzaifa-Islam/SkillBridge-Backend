@@ -23,12 +23,8 @@ router.get("/", TutorsControllers.getAllTutor);
 // get a tutor details (public)
 router.get("/:id", TutorsControllers.getATutorDetails);
 
-// view rating or review route of a tutor (tutor, student, admin)
-router.get(
-  "/rating/:id",
-  authenticate(UserRole.tutor, UserRole.student, UserRole.admin),
-  TutorsControllers.getRatings,
-);
+// view rating or review route of a tutor (public)
+router.get("/rating/:id", TutorsControllers.getRatings);
 
 // create a tutor profile (tutor)
 router.post(

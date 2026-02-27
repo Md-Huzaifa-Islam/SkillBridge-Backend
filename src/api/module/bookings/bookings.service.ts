@@ -6,18 +6,33 @@ import {
 
 const getAllBookingsTutor = async (id: string) => {
   return await prisma.booking.findMany({
-    where: {
-      tutorId: id,
+    where: { tutorId: id },
+    include: {
+      student: { select: { id: true, name: true, email: true } },
+      available: { select: { id: true, day: true } },
+      reviews: { select: { id: true, rating: true, review: true } },
     },
+    orderBy: { date: "desc" },
   });
-  // return result
 };
 
 const getAllBookingsStudent = async (id: string) => {
   return await prisma.booking.findMany({
-    where: {
-      studentId: id,
+    where: { studentId: id },
+    include: {
+      tutor: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          user: { select: { id: true, name: true, email: true } },
+          category: { select: { id: true, name: true } },
+        },
+      },
+      available: { select: { id: true, day: true } },
+      reviews: { select: { id: true, rating: true, review: true } },
     },
+    orderBy: { date: "desc" },
   });
 };
 
