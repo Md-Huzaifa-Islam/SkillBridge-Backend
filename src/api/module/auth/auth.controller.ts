@@ -61,7 +61,7 @@ const login = async (req: Request, res: Response) => {
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN },
   );
-  return res.json({ token });
+  return res.json({ token, role: user.role });
 };
 
 const me = async (req: Request, res: Response) => {
