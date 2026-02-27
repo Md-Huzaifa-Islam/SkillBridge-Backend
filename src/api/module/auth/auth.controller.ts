@@ -65,11 +65,29 @@ const login = async (req: Request, res: Response) => {
 };
 
 const me = async (req: Request, res: Response) => {
-  // req.user is set by jwtAuth middleware
   // @ts-ignore
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
   // @ts-ignore
-  return res.json({ user: req.user });
+  const { password: _pw, ...safeUser } = req.user as any;
+  return res.json({ user: safeUser });
+};
+
+const updateMe = async (req: Request, res: Response) => {
+  // @ts-ignore
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  const { name } = req.body;
+  if (!name || typeof name !== "string" || name.trim().length < 2) {
+    return res
+      .status(400)
+      .json({ message: "Name must be at least 2 characters." });
+  }
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { name: name.trim() },
+    select: { id: true, name: true, email: true, role: true },
+  });
+  return res.json({ user: updated });
 };
 
 const verifyEmail = async (req: Request, res: Response) => {
@@ -89,4 +107,4 @@ const verifyEmail = async (req: Request, res: Response) => {
   }
 };
 
-export const AuthControllers = { register, login, me, verifyEmail };
+export const AuthControllers = { register, login, me, updateMe, verifyEmail };

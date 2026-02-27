@@ -13,6 +13,7 @@ const router = Router();
 router.post("/register", validate(registerSchema), AuthControllers.register);
 router.post("/login", validate(loginSchema), AuthControllers.login);
 router.get("/me", authenticate(), AuthControllers.me);
+router.patch("/me", authenticate(), AuthControllers.updateMe);
 router.post(
   "/verify",
   validate(verifyEmailSchema),

@@ -159,12 +159,25 @@ const updateSlotTutor = async ({
   id: string;
   days: WeekDay[];
 }) => {
-  const data = days.map((d) => ({ tutorId: id, day: d }));
+  return await prisma.$transaction(async (tx) => {
+    // Delete availabilities that were unchecked AND have no bookings attached.
+    // We cannot delete ones with existing bookings due to the FK constraint.
+    await tx.available.deleteMany({
+      where: {
+        tutorId: id,
+        day: { notIn: days },
+        bookings: { none: {} },
+      },
+    });
 
-  // Instead of deleting existing availabilities (which can fail due to FK
-  // references from bookings), we'll create any missing availabilities and
-  // skip duplicates. This avoids delete-related foreign key violations.
-  return await prisma.available.createMany({ data, skipDuplicates: true });
+    // Add any newly checked days (skip if already exist).
+    if (days.length > 0) {
+      await tx.available.createMany({
+        data: days.map((d) => ({ tutorId: id, day: d })),
+        skipDuplicates: true,
+      });
+    }
+  });
 };
 
 export const TutorsServices = {
