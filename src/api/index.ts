@@ -1,5 +1,6 @@
 import { Router, type Router as RouterType } from "express";
 import { AuthRoutes } from "./module/auth/auth.route";
+import { AdminRoutes } from "./module/admin/admin.route";
 import { BookingsRoutes } from "./module/bookings/bookings.route";
 import { CategoriesRoutes } from "./module/categories/categories.route";
 import { ReviewsRoutes } from "./module/reviews/reviews.route";
@@ -9,6 +10,9 @@ const router: RouterType = Router();
 
 // auth route
 router.use("/auth", AuthRoutes);
+
+// admin route
+router.use("/admin", AdminRoutes);
 
 // bookings route
 router.use("/bookings", BookingsRoutes);
