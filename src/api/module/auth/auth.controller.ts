@@ -32,9 +32,7 @@ const register = async (req: Request, res: Response) => {
   const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
     expiresIn: "1d",
   });
-  const html = verifyHtmlGenerate(
-    `${process.env.APP_URL || "http://localhost:3000"}/verify?token=${token}`,
-  );
+  const html = verifyHtmlGenerate(`${config.app_url}/verify?token=${token}`);
   await sendMail(
     user.email,
     "Verify your SkillBridge account",
