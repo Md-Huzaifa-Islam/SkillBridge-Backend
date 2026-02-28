@@ -10,12 +10,19 @@ const getTutorProfileByUserId = async (userId: string) => {
       startTime: true,
       endTime: true,
       pricePerHour: true,
+      categoryId: true,
       createdAt: true,
       updatedAt: true,
       user: {
         select: {
           name: true,
           email: true,
+        },
+      },
+      category: {
+        select: {
+          id: true,
+          name: true,
         },
       },
       availabilities: {
@@ -78,12 +85,19 @@ const getATutorDetails = async (id: string) => {
       startTime: true,
       endTime: true,
       pricePerHour: true,
+      categoryId: true,
       createdAt: true,
       updatedAt: true,
       user: {
         select: {
           name: true,
           email: true,
+        },
+      },
+      category: {
+        select: {
+          id: true,
+          name: true,
         },
       },
       availabilities: {
