@@ -7,10 +7,10 @@ import { bookingSchema } from "../validation/zodSchemas";
 
 const router: RouterType = Router();
 
-// get all booking of a user (student, tutor)
+// get all booking of a user (student, tutor) or all bookings (admin)
 router.get(
   "/",
-  authenticate(UserRole.tutor, UserRole.student),
+  authenticate(UserRole.tutor, UserRole.student, UserRole.admin),
   BookingsControllers.getAllBookings,
 );
 

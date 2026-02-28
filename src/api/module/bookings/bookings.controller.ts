@@ -27,9 +27,15 @@ const getAllBookings = async (
         message: "Bookings of student fetched.",
         data: result,
       });
+    } else if (req.user?.role == UserRole.admin) {
+      const result = await BookingsServices.getAllBookingsAdmin();
+      sendResponse(res, {
+        message: "All bookings fetched.",
+        data: result,
+      });
     } else {
       res.status(403);
-      throw new Error("Only tutor and student can access this route.");
+      throw new Error("Only tutor, student, and admin can access this route.");
     }
   } catch (error: any) {
     next(error);

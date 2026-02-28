@@ -4,12 +4,18 @@ import {
   UpdateBookingParams,
 } from "../../../types/bookings";
 
-const getAllBookingsTutor = async (id: string) => {
+const getAllBookingsTutor = async (userId: string) => {
+  // Booking.tutorId stores TutorProfile.id, not User.id — look it up first
+  const profile = await prisma.tutorProfile.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+  if (!profile) return [];
   return await prisma.booking.findMany({
-    where: { tutorId: id },
+    where: { tutorId: profile.id },
     include: {
       student: { select: { id: true, name: true, email: true } },
-      available: { select: { id: true, day: true } },
+      availableDate: { select: { id: true, day: true } },
       reviews: { select: { id: true, rating: true, review: true } },
     },
     orderBy: { date: "desc" },
@@ -29,7 +35,7 @@ const getAllBookingsStudent = async (id: string) => {
           category: { select: { id: true, name: true } },
         },
       },
-      available: { select: { id: true, day: true } },
+      availableDate: { select: { id: true, day: true } },
       reviews: { select: { id: true, rating: true, review: true } },
     },
     orderBy: { date: "desc" },
@@ -125,6 +131,24 @@ const getABooking = async (id: string) => {
   });
 };
 
+const getAllBookingsAdmin = async () => {
+  return await prisma.booking.findMany({
+    include: {
+      student: { select: { id: true, name: true, email: true } },
+      tutor: {
+        select: {
+          id: true,
+          title: true,
+          user: { select: { id: true, name: true, email: true } },
+          category: { select: { id: true, name: true } },
+        },
+      },
+      availableDate: { select: { id: true, day: true } },
+    },
+    orderBy: { date: "desc" },
+  });
+};
+
 export const BookingsServices = {
   getAllBookingsTutor,
   getAllBookingsStudent,
@@ -132,4 +156,5 @@ export const BookingsServices = {
   getBookingDetails,
   updateBookingStatus,
   getABooking,
+  getAllBookingsAdmin,
 };
